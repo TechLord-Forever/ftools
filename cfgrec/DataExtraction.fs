@@ -1,6 +1,5 @@
 ﻿namespace cfgrecon
   module DataExtraction =
-
     type architecture_t =
       | X86 = 0
       | X86_64 = 1
@@ -17,10 +16,6 @@
       { typeid: typeid_address_t;
         value: value_address_t }
 
-    type header_t =
-      { architecture: architecture_t;
-        address_size: typeid_address_t }
-
     type register_t =
       { name: string;
         value: address_t }
@@ -34,3 +29,27 @@
       | RegWrite = 1
       | MemLoad = 2
       | MemStore = 3
+      | Comment = 255
+
+    type value_con_info_t =
+      | Read_register of register_t
+      | Write_register of register_t
+      | Load_memory of memory_t
+      | Store_memory of memory_t
+
+    type con_info_t =
+      { typeid: typeid_con_info_t;
+        value: value_con_info_t }
+
+    type instruction_t =
+      { thread_id: address_t;
+        address: address_t;
+        opcode: string;
+        concrete_info: con_info_t list;
+        disassemble: string }
+
+    type header_t =
+      { architecture: architecture_t;
+        address_size: typeid_address_t }
+
+    type chunk_t = instruction_t list
