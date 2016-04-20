@@ -1,61 +1,24 @@
 ﻿namespace cfgrecon
   module DataExtraction =
-    // open System.IO
-    // open Chiron
+    type MachineArchitecture =
+      | X86
+      | X86_64
 
-    type architecture_t =
-      | X86 = 0
-      | X86_64 = 1
+    type RegisterAccess<'T> = { name: string; value: 'T }
+    type MemoryAccess<'T> = { address: 'T; value: 'T }
 
-    type typeid_address_t =
-      | Bit32 = 0
-      | Bit64 = 1
 
-    type value_address_t =
-      | Value_32 of uint32
-      | Value_64 of uint64
+    type MachineInfo = { arch: MachineArchitecture;
+                         address_size: uint32 }
 
-    type address_t =
-      { typeid: typeid_address_t;
-        value: value_address_t }
-
-    type register_t =
-      { name: string;
-        value: address_t }
-
-    type memory_t =
-      { address: address_t;
-        value: address_t }
-
-    type typeid_con_info_t =
-      | RegRead = 0
-      | RegWrite = 1
-      | MemLoad = 2
-      | MemStore = 3
-      | Comment = 255
-
-    type value_con_info_t =
-      | Read_register of register_t
-      | Write_register of register_t
-      | Load_memory of memory_t
-      | Store_memory of memory_t
-
-    type con_info_t =
-      { typeid: typeid_con_info_t;
-        value: value_con_info_t }
-
-    type instruction_t =
-      { thread_id: address_t;
-        address: address_t;
-        opcode: string;
-        concrete_info: con_info_t list;
-        disassemble: string }
-
-    type header_t =
-      { architecture: architecture_t;
-        address_size: typeid_address_t }
-
-    type chunk_t = instruction_t list
+    type Instruction<'T> = { address: 'T;
+                             disassemble: string;
+                             thread_id: uint32;
+                             opcode: byte[];
+                             read_registers: RegisterAccess list;
+                             write_registers: RegisterAccess list;
+                             read_addresses: MemoryAccess list;
+                             write_addresses: MemoryAccess list }
 
     (*==========================================================================*)
 
@@ -63,9 +26,13 @@
       use data_size = reader.ReadUInt32 ()
       reader.ReadBytes (int data_size)
 
+    let get_machine_information (data: byte[]) =
+      
+
     let get_instructions (data: byte[]) =
       use data_as_string = System.String (data)
       use json_instructions = Chiron.Json.parse data_as_string
+
 
 
 
