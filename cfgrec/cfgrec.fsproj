@@ -51,17 +51,17 @@
     <Reference Include="MsgPack">
       <HintPath>..\packages\MsgPack.0.1.0.2011042300\lib\net40\MsgPack.dll</HintPath>
     </Reference>
-    <Reference Include="Aether">
-      <HintPath>..\packages\Aether.8.0.2\lib\net35\Aether.dll</HintPath>
-    </Reference>
-    <Reference Include="FParsec">
-      <HintPath>..\packages\FParsec.1.0.1\lib\net40-client\FParsec.dll</HintPath>
-    </Reference>
-    <Reference Include="FParsecCS">
-      <HintPath>..\packages\FParsec.1.0.1\lib\net40-client\FParsecCS.dll</HintPath>
-    </Reference>
     <Reference Include="Chiron">
       <HintPath>..\packages\Chiron.6.1.0\lib\net40\Chiron.dll</HintPath>
+    </Reference>
+    <Reference Include="Aether">
+      <HintPath>..\packages\Aether.8.1.2\lib\net35\Aether.dll</HintPath>
+    </Reference>
+    <Reference Include="FParsec">
+      <HintPath>..\packages\FParsec.1.0.2\lib\net40-client\FParsec.dll</HintPath>
+    </Reference>
+    <Reference Include="FParsecCS">
+      <HintPath>..\packages\FParsec.1.0.2\lib\net40-client\FParsecCS.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

@@ -1,5 +1,8 @@
 ﻿namespace cfgrecon
   module DataExtraction =
+    // open System.IO
+    // open Chiron
+
     type architecture_t =
       | X86 = 0
       | X86_64 = 1
@@ -53,3 +56,16 @@
         address_size: typeid_address_t }
 
     type chunk_t = instruction_t list
+
+    (*==========================================================================*)
+
+    let private extract_packed_data (reader:System.IO.BinaryReader) =
+      use data_size = reader.ReadUInt32 ()
+      reader.ReadBytes (int data_size)
+
+    let get_instructions (data: byte[]) =
+      use data_as_string = System.String (data)
+      use json_instructions = Chiron.Json.parse data_as_string
+
+
+
