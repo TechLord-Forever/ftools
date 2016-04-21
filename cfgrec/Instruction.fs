@@ -1,6 +1,6 @@
 ﻿namespace cfgrecon
   module Instruction =
-    type MemoryMap<'T when 'T : comparison> = Map<'T, 'T>
+    type MemoryMap<'T when 'T : comparison> = Map<'T, uint8>
     type RegisterMap<'T>                    = Map<string, 'T>
 
     type Instruction<'T when 'T : comparison> =
