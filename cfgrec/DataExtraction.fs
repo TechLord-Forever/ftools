@@ -69,29 +69,42 @@
       let chunk_info_list = Map.toList (unbox <| Map.find "chunk" chunk_map)
       List.iter (fun chunk_elem ->
                  let elem_map:Map<string, obj> = unbox chunk_elem
-                 let address = System.Decimal.ToUInt64 (unbox<decimal> <| Map.find "address" elem_map)
-                 let disassemble = unbox<string> <| Map.find "disassemble" elem_map
+                 let address = Map.find "address" elem_map |> unbox<decimal> |>  System.Decimal.ToUInt64
+                 let disassemble = Map.find "disassemble" elem_map |> unbox<string>
+                 let opcode = Map.find "opcode" elem_map |> unbox<string> |> System.Convert.FromBase64String
                  let read_registers : Instruction.RegisterMap<'T> =
                    let reg_obj_list = Map.find "read registers" elem_map
                    Map.ofList <| List.map (fun reg_obj ->
                                            let single_reg_map:Map<string, decimal> = unbox reg_obj
                                            let single_reg_array = Map.toArray single_reg_map
                                            (fst single_reg_array.[0],
-                                            System.Decimal.ToUInt64 <| snd single_reg_array.[0])) reg_obj_list
+                                            typeof<'T> (System.Decimal.ToUInt64 <| snd single_reg_array.[0]))
+                                           ) reg_obj_list
                  let write_registers : Instruction.RegisterMap<'T> =
                    let reg_obj_list = Map.find "write registers" elem_map
                    Map.ofList <| List.map (fun reg_obj ->
                                            let single_reg_map:Map<string, decimal> = unbox reg_obj
                                            let single_reg_array = Map.toArray single_reg_map
                                            (fst single_reg_array.[0],
-                                            System.Decimal.ToUInt64 <| snd single_reg_array.[0])
+                                            typeof<'T> (System.Decimal.ToUInt64 <| snd single_reg_array.[0]))
                                            ) reg_obj_list
                  let read_addresses : Instruction.MemoryMap<'T> =
                    let addr_obj_list = Map.find "read addresses" elem_map
                    Map.ofList <| List.map (fun addr_obj ->
                                            let single_addr_map:Map<string, decimal> = unbox addr_obj
                                            let single_addr_array = Map.toArray single_addr_map
-                                           single_addr_array.[0]) 
+                                           (typeof<'T> (System.UInt64.Parse <| fst single_addr_array.[0]),
+                                            uint8 (System.Decimal.ToUInt64 <| snd single_addr_array.[0]))
+                                           ) addr_obj_list
+                 let write_addresses : Instruction.MemoryMap<'T> =
+                   let addr_obj_list = Map.find "write address" elem_map
+                   Map.ofList <| List.map (fun addr_obj ->
+                                           let single_addr_map:Map<string, decimal> = unbox addr_obj
+                                           let single_addr_array = Map.toArray single_addr_map
+                                           (typeof<'T> (System.UInt64.Parse <| fst single_addr_array.[0]),
+                                            uint8 (System.Decimal.ToUInt64 <| snd single_addr_array.[0]))
+                                           ) addr_obj_list
+
                  ) chunk_info_list
 
 
