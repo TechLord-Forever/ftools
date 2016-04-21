@@ -4,20 +4,8 @@
       | X86
       | X86_64
 
-    // type RegisterAccess<'T> = { name: string; value: 'T }
-    // type MemoryAccess<'T> = { address: 'T; value: 'T }
-
     type MachineInfo = { arch: MachineArchitecture;
                          address_size: uint32 }
-
-    // type Instruction<'T> = { address: 'T;
-    //                          disassemble: string;
-    //                          thread_id: uint32;
-    //                          opcode: byte[];
-    //                          read_registers: RegisterAccess list;
-    //                          write_registers: RegisterAccess list;
-    //                          read_addresses: MemoryAccess list;
-    //                          write_addresses: MemoryAccess list }
 
     (*==========================================================================*)
 
