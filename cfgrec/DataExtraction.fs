@@ -1,12 +1,12 @@
 ﻿namespace cfgrecon
 
   [<AutoOpen>]
-  module Instruction =
-    type MachineArchitecture =
+  module Machine =
+    type Architecture =
       | X86
       | X86_64
 
-    type MachineInfo = { arch: MachineArchitecture;
+    type MachineInfo = { arch: Architecture;
                          address_size: uint32 }
 
     type MemoryMap<'T when 'T : comparison> = Map<'T, uint8>
@@ -22,6 +22,7 @@
         read_addresses    : MemoryMap<'T>;
         written_addresses : MemoryMap<'T> }
 
+  module DataExtraction =
     let make_instruction (ins_addr, ins_disas, ins_thread_id, ins_opcode,
                           read_regs, written_regs, read_addrs, written_addrs) =
       { address           = ins_addr;
@@ -32,8 +33,6 @@
         written_registers = written_regs;
         read_addresses    = read_addrs;
         written_addresses = written_addrs }
-
-  module DataExtraction =
 
     // first read a uint32 value since it specifies the length of json serialized data, next read the data
     let private extract_packed_data (reader:System.IO.BinaryReader) =
@@ -46,9 +45,9 @@
     //     "address size": 32
     //    }
     //  }
-    let get_machine_information_from_header (data:byte[]) =
+    let private get_machine_information_from_header (header:byte[]) =
       try
-        let json_header = Chiron.Parsing.Json.parse (string data)
+        let json_header = Chiron.Parsing.Json.parse (string header)
         let header_map:Map<string, obj> = unbox json_header
         let header_info_map:Map<string, decimal> = unbox <| Map.find "header" header_map
         let parsed_arch = System.Decimal.ToUInt32 (unbox<decimal> <| Map.find "architecture" header_info_map)
@@ -97,72 +96,49 @@
       (fst single_addr_array.[0] |> System.UInt64.Parse,
        snd single_addr_array.[0] |>  System.Decimal.ToUInt64 |> uint8)
 
-    let private get_base_instructions_from_chunk (data:byte[]) =
-      let json_chunk = Chiron.Parsing.Json.parse (string data)
+    let private extract_json_chunk_element chunk_elem =
+      let elem_map:Map<string, obj> = unbox chunk_elem
+      let address = Map.find "address" elem_map |> unbox<decimal> |>  System.Decimal.ToUInt64
+      let disassemble = Map.find "disassemble" elem_map |> unbox<string>
+      let thread_id = Map.find "thread_id" elem_map |> unbox<decimal> |> System.Decimal.ToUInt32
+      let opcode = Map.find "opcode" elem_map |> unbox<string> |> System.Convert.FromBase64String
+      let read_registers =
+        let reg_obj_list = Map.find "read registers" elem_map |> unbox
+        Map.ofList <| List.map extract_json_register_object reg_obj_list
+      let write_registers =
+        let reg_obj_list = Map.find "write registers" elem_map |> unbox
+        Map.ofList <| List.map extract_json_register_object reg_obj_list
+      let read_addresses =
+        let addr_obj_list = Map.find "read addresses" elem_map |> unbox
+        Map.ofList <| List.map extract_json_address_object addr_obj_list
+      let write_addresses =
+        let addr_obj_list = Map.find "write address" elem_map |> unbox
+        Map.ofList <| List.map extract_json_address_object addr_obj_list
+      (address, disassemble, thread_id, opcode, read_registers, write_registers, read_addresses, write_addresses)
+
+    let private get_base_instructions_from_chunk (chunk:byte[]) =
+      let json_chunk = Chiron.Parsing.Json.parse (string chunk)
       let chunk_map : Map<string, obj> = unbox json_chunk
       let chunk_info_list = Map.toList (unbox <| Map.find "chunk" chunk_map)
-      List.map (fun chunk_elem ->
-                let elem_map:Map<string, obj> = unbox chunk_elem
-                let address = Map.find "address" elem_map |> unbox<decimal> |>  System.Decimal.ToUInt64
-                let disassemble = Map.find "disassemble" elem_map |> unbox<string>
-                let thread_id = Map.find "thread_id" elem_map |> unbox<decimal> |> System.Decimal.ToUInt32
-                let opcode = Map.find "opcode" elem_map |> unbox<string> |> System.Convert.FromBase64String
-                let read_registers =
-                  let reg_obj_list = Map.find "read registers" elem_map |> unbox
-                  Map.ofList <| List.map extract_json_register_object reg_obj_list
-                let write_registers =
-                  let reg_obj_list = Map.find "write registers" elem_map |> unbox
-                  Map.ofList <| List.map extract_json_register_object reg_obj_list
-                let read_addresses =
-                  let addr_obj_list = Map.find "read addresses" elem_map |> unbox
-                  Map.ofList <| List.map extract_json_address_object addr_obj_list
-                let write_addresses =
-                  let addr_obj_list = Map.find "write address" elem_map |> unbox
-                  Map.ofList <| List.map extract_json_address_object addr_obj_list
-                (address, disassemble, thread_id, opcode, read_registers, write_registers, read_addresses, write_addresses)
-                ) chunk_info_list
+      List.map extract_json_chunk_element chunk_info_list
 
-    let private convert_generic<'T> (x:uint64) =
-      match box Unchecked.defaultof<'T> with
-        | :? uint32 -> uint32 x |> box
-        | :? uint64 -> uint64 x |> box
-        | _ -> failwith "unknown type of address"
-      :?> 'T
+    let private convert<'T> = Utility.cast_generic<'T>
 
-    let get_instruction_from_chunk<'T when 'T: comparison> (data:byte[]) =
+    let private convert_base_instruction<'T when 'T: comparison> base_ins =
+      match base_ins with
+        | (address, disassemble, thread_id, opcode, read_registers, write_registers, read_addresses, write_addresses) ->
+          (convert<'T> address, disassemble, thread_id, opcode,
+           Map.map (fun _ reg_value -> convert<'T> reg_value) read_registers,
+           Map.map (fun _ reg_value -> convert<'T> reg_value) write_registers,
+           Map.toList read_addresses |> List.map (fun (address, value) -> (convert<'T> address, value)) |> Map.ofList,
+           Map.toList write_addresses |>  List.map (fun (address, value) -> (convert<'T> address, value)) |> Map.ofList)
+
+    let private get_instruction_from_chunk<'T when 'T: comparison> (chunk:byte[]) =
       try
         let ins_list =
-          get_base_instructions_from_chunk data |>
-          List.map (fun (address, disassemble, thread_id, opcode, read_registers, write_registers, read_addresses, write_addresses) ->
-                    (convert_generic<'T> address, disassemble, thread_id, opcode,
-                     Map.toList read_registers |> List.map (fun (reg_name, reg_value) -> (reg_name, convert_generic<'T> reg_value)) |> Map.ofList,
-                     Map.toList write_registers |>  List.map (fun (reg_name, reg_value) -> (reg_name, uint32 reg_value)) |> Map.ofList,
-                     Map.toList read_addresses |> List.map (fun (address, value) -> (convert_generic<'T> address, value)) |> Map.ofList,
-                     Map.toList write_addresses |>  List.map (fun (address, value) -> (convert_generic<'T> address, value)) |> Map.ofList))
+          get_base_instructions_from_chunk chunk
+          |> List.map convert_base_instruction
+          |> List.map make_instruction
         Some ins_list
       with
         | _ -> None
-
-    // let get_instruction_from_chunk<'T when 'T : comparison> (data:byte[]) =
-    //   let ins_list =
-    //    match box Unchecked.defaultof<'T> with
-    //      | :? uint32 ->
-    //        get_base_instructions_from_chunk data |>
-    //        List.map (fun (address, disassemble, thread_id, opcode, read_registers, write_registers, read_addresses, write_addresses) ->
-    //                  ('T address, disassemble, thread_id, opcode,
-    //                   Map.toList read_registers |> List.map (fun (reg_name, reg_value) -> (reg_name, uint32 reg_value)) |> Map.ofList ,
-    //                   Map.toList write_registers |>  List.map (fun (reg_name, reg_value) -> (reg_name, uint32 reg_value)) |> Map.ofList,
-    //                   Map.toList read_addresses |> List.map (fun (address, value) -> (uint32 address, value)) |> Map.ofList,
-    //                   Map.toList write_addresses |>  List.map (fun (address, value) -> (uint32 address, value)) |> Map.ofList))
-    //      | :? uint64 ->
-    //        get_base_instructions_from_chunk data |>
-    //        List.map (fun (address, disassemble, thread_id, opcode, read_registers, write_registers, read_addresses, write_addresses) ->
-    //                  ('T address, disassemble, thread_id, opcode,
-    //                   Map.toList read_registers |> List.map (fun (reg_name, reg_value) -> (reg_name, uint64 reg_value)) |> Map.ofList ,
-    //                   Map.toList write_registers |>  List.map (fun (reg_name, reg_value) -> (reg_name, uint64 reg_value)) |> Map.ofList,
-    //                   Map.toList read_addresses |> List.map (fun (address, value) -> (uint64 address, value)) |> Map.ofList,
-    //                   Map.toList write_addresses |>  List.map (fun (address, value) -> (uint64 address, value)) |> Map.ofList))
-    //   Some ins_list
-
-
-
