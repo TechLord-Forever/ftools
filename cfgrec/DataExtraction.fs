@@ -142,3 +142,9 @@
         Some ins_list
       with
         | _ -> None
+
+
+    let parse_trace_file filename =
+      use trace_reader = System.IO.BinaryReader(System.IO.File.OpenRead(filename))
+      let machine_info = extract_packed_data |> get_machine_information_from_header
+      

@@ -3,11 +3,11 @@
     <String>ftools.fsproj</String>
   </DisabledProjects>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="cfgrec/Utilitiy.fs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="cfgrec/DataExtraction.fs">
     <Files>
-      <File FileName="cfgrec/Utilitiy.fs" Line="18" Column="67" />
       <File FileName="cfgrec/Program.fs" Line="4" Column="17" />
-      <File FileName="cfgrec/DataExtraction.fs" Line="126" Column="1" />
+      <File FileName="cfgrec/DataExtraction.fs" Line="11" Column="1" />
+      <File FileName="cfgrec/Utilitiy.fs" Line="11" Column="7" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
