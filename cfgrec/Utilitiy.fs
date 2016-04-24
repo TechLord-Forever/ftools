@@ -15,4 +15,4 @@
         | :? uint64 -> uint64 x |> unbox<'T>
         | _ -> failwith "unknown type of address"
 
-    // let convert_static (x:uint64) : int = FSharpPlus.Operators.explicit x
+    let inline convert_static (x:uint64) : 'T = FSharpPlus.Operators.explicit x
