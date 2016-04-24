@@ -9,45 +9,55 @@ namespace cfgrecon
     type MachineInfo = { arch: Architecture;
                          address_size: uint32 }
 
-    type MemoryMap<'T when 'T : comparison> = Map<'T, uint8>
-    type RegisterMap<'T> = Map<string, 'T>
-
-    type Instruction<'T when 'T : comparison> =
-      { address           : 'T;
-        disassemble       : string;
-        thread_id         : uint32;
-        opcode            : byte[];
-        read_registers    : RegisterMap<'T>;
-        written_registers : RegisterMap<'T>;
-        read_addresses    : MemoryMap<'T>;
-        written_addresses : MemoryMap<'T> }
-
-    type TraceInfo<'T when 'T : comparison> = { machine: MachineInfo;
-                                                trace: seq<Instruction<'T>> }
-
-    type BaseInstruction (ins_addr : uint64,
-                          ins_disas : string,
-                          ins_tid : uint32,
-                          ins_opc : byte[],
-                          ins_read_regs : RegisterMap<uint64>,
-                          ins_write_regs : RegisterMap<uint64>,
-                          ins_read_addrs : MemoryMap<uint64>,
-                          ins_write_addrs : MemoryMap<uint64>) =
+    type Instruction (ins_addr, ins_disas, ins_tid, ins_opc,
+                      ins_read_regs, ins_write_regs, ins_read_addrs, ins_write_addrs) =
       member v.address = ins_addr
       member v.disassemble = ins_disas
+      member v.thread_id = ins_tid
+      member v.opcode = ins_opc
+      member v.read_registers = ins_read_regs
+      member v.write_registers = ins_write_regs
+      member v.read_addresses = ins_read_addrs
+      member v.write_address = ins_write_addrs
 
+    // type MemoryMap<'T when 'T : comparison> = Map<'T, uint8>
+    // type RegisterMap<'T> = Map<string, 'T>
+
+    // type Instruction<'T when 'T : comparison> =
+    //   { address           : 'T;
+    //     disassemble       : string;
+    //     thread_id         : uint32;
+    //     opcode            : byte[];
+    //     read_registers    : RegisterMap<'T>;
+    //     written_registers : RegisterMap<'T>;
+    //     read_addresses    : MemoryMap<'T>;
+    //     written_addresses : MemoryMap<'T> }
+
+    // type TraceInfo<'T when 'T : comparison> = { machine: MachineInfo;
+    //                                             trace: seq<Instruction<'T>> }
+
+    // type BaseInstruction (ins_addr : uint64,
+    //                       ins_disas : string,
+    //                       ins_tid : uint32,
+    //                       ins_opc : byte[],
+    //                       ins_read_regs : RegisterMap<uint64>,
+    //                       ins_write_regs : RegisterMap<uint64>,
+    //                       ins_read_addrs : MemoryMap<uint64>,
+    //                       ins_write_addrs : MemoryMap<uint64>) =
+    //   member x.address = ins_addr
+    //   member x.disassemble = ins_disas
 
   module DataExtraction =
-    let make_instruction (ins_addr, ins_disas, ins_thread_id, ins_opcode,
-                          read_regs, written_regs, read_addrs, written_addrs) =
-      { address           = ins_addr;
-        disassemble       = ins_disas;
-        thread_id         = ins_thread_id;
-        opcode            = ins_opcode;
-        read_registers    = read_regs;
-        written_registers = written_regs;
-        read_addresses    = read_addrs;
-        written_addresses = written_addrs }
+    // let make_instruction (ins_addr, ins_disas, ins_thread_id, ins_opcode,
+    //                       read_regs, written_regs, read_addrs, written_addrs) =
+    //   { address           = ins_addr;
+    //     disassemble       = ins_disas;
+    //     thread_id         = ins_thread_id;
+    //     opcode            = ins_opcode;
+    //     read_registers    = read_regs;
+    //     written_registers = written_regs;
+    //     read_addresses    = read_addrs;
+    //     written_addresses = written_addrs }
 
     // first read a uint32 value since it specifies the length of json serialized data, next read the data
     let private extract_packed_data (reader:System.IO.BinaryReader) =
@@ -64,18 +74,15 @@ namespace cfgrecon
     //    }
     //  }
     let private parse_machine_information (header:byte[]) =
-      try
-        let json_header                          = Chiron.Parsing.Json.parse (string header)
-        let header_map:Map<string, obj>          = unbox json_header
-        let header_info_map:Map<string, decimal> = unbox <| Map.find "header" header_map
-        let parsed_arch                          = System.Decimal.ToUInt32 (unbox<decimal> <| Map.find "architecture" header_info_map)
-        let parsed_addrlen                       = System.Decimal.ToUInt32 (unbox<decimal> <| Map.find "address size" header_map)
-        match (int parsed_arch) with
-          | 0 -> { arch = X86; address_size = parsed_addrlen }
-          | 1 -> { arch = X86_64; address_size = parsed_addrlen }
-          | _ -> failwith "parse_marchine_information: unknown architecture"
-      with
-        | :? _ as ex -> failwith (Printf.sprintf "parse_marchine_information: %s" ex.Message)
+      let json_header                          = Chiron.Parsing.Json.parse (string header)
+      let header_map:Map<string, obj>          = unbox json_header
+      let header_info_map:Map<string, decimal> = unbox <| Map.find "header" header_map
+      let parsed_arch                          = System.Decimal.ToUInt32 (unbox<decimal> <| Map.find "architecture" header_info_map)
+      let parsed_addrlen                       = System.Decimal.ToUInt32 (unbox<decimal> <| Map.find "address size" header_map)
+      match (int parsed_arch) with
+        | 0 -> { arch = X86; address_size = parsed_addrlen }
+        | 1 -> { arch = X86_64; address_size = parsed_addrlen }
+        | _ -> failwith "parse_marchine_information: unknown architecture"
 
 
     // an example of the json form for a chunk of instructions:
@@ -134,27 +141,27 @@ namespace cfgrecon
         Map.ofList <| List.map extract_json_address_object addr_obj_list
       (address, disassemble, thread_id, opcode, read_registers, write_registers, read_addresses, write_addresses)
 
-    let private parseget_base_instructions (chunk:byte[]) =
+    let private parse_base_instructions (chunk:byte[]) =
       let json_chunk = Chiron.Parsing.Json.parse (string chunk)
       let chunk_map : Map<string, obj> = unbox json_chunk
       let chunk_info_list = Map.toList (unbox <| Map.find "chunk" chunk_map)
       List.map extract_json_chunk_element chunk_info_list
 
-    // let private convert<'T> = Utility.cast_generic<'T>
-    let private convert = Utility.convert_static
+    let private convert<'T> = Utility.cast_generic<'T>
+    // let private inline convert = Utility.convert_static
 
     let private convert_base_instruction<'T when 'T: comparison> base_ins =
       match base_ins with
         | (address, disassemble, thread_id, opcode, read_registers, write_registers, read_addresses, write_addresses) ->
-          (convert address, disassemble, thread_id, opcode,
-           Map.map (fun _ reg_value -> convert reg_value) read_registers,
-           Map.map (fun _ reg_value -> convert reg_value) write_registers,
-           Map.toList read_addresses |> List.map (fun (address, value) -> (convert address, value)) |> Map.ofList,
-           Map.toList write_addresses |>  List.map (fun (address, value) -> (convert address, value)) |> Map.ofList)
+          (convert<'T> address, disassemble, thread_id, opcode,
+           Map.map (fun _ reg_value -> convert<'T> reg_value) read_registers,
+           Map.map (fun _ reg_value -> convert<'T> reg_value) write_registers,
+           Map.toList read_addresses |> List.map (fun (address, value) -> (convert<'T> address, value)) |> Map.ofList,
+           Map.toList write_addresses |>  List.map (fun (address, value) -> (convert<'T> address, value)) |> Map.ofList)
 
     let private get_instruction_from_chunk<'T when 'T: comparison> (chunk:byte[]) =
       try
-        parseget_base_instructions chunk
+        parse_base_instructions chunk
         |> List.map convert_base_instruction
         |> List.map make_instruction
       with
