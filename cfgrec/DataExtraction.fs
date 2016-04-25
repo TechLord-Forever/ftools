@@ -9,16 +9,29 @@ namespace cfgrecon
     type MachineInfo = { arch: Architecture;
                          address_size: uint32 }
 
-    type Instruction (ins_addr, ins_disas, ins_tid, ins_opc,
-                      ins_read_regs, ins_write_regs, ins_read_addrs, ins_write_addrs) =
-      member v.address         = ins_addr
-      member v.disassemble     = ins_disas
-      member v.thread_id       = ins_tid
-      member v.opcode          = ins_opc
-      member v.read_registers  = ins_read_regs
-      member v.write_registers = ins_write_regs
-      member v.read_addresses  = ins_read_addrs
-      member v.write_address   = ins_write_addrs
+    type MemoryMap<'T when 'T : comparison> = Map<'T, uint8>
+    type RegisterMap<'T> = Map<string, 'T>
+
+    type Instruction<'T when 'T : comparison> = { address         : 'T;
+                                                  disassemble     : string;
+                                                  thread_id       : uint32;
+                                                  opcode          : byte[];
+                                                  read_registers  : RegisterMap<'T>;
+                                                  write_registers : RegisterMap<'T>;
+                                                  read_addresses  : MemoryMap<'T>;
+                                                  write_addresses : MemoryMap<'T> }
+
+    // type Instruction<'T when 'T : comparison> (ins_addr, ins_disas, ins_tid, ins_opc,
+    //                                            ins_read_regs : RegisterMap<'T>, ins_write_regs : RegisterMap<'T>,
+    //                                            ins_read_addrs : MemoryMap<'T>, ins_write_addrs : MemoryMap<'T>) =
+    //   member v.address         = ins_addr
+    //   member v.disassemble     = ins_disas
+    //   member v.thread_id       = ins_tid
+    //   member v.opcode          = ins_opc
+    //   member v.read_registers  = ins_read_regs
+    //   member v.write_registers = ins_write_regs
+    //   member v.read_addresses  = ins_read_addrs
+    //   member v.write_address   = ins_write_addrs
 
    type TraceInfo (parsed_machine_info, parsed_instructions) =
      member v.machine_info = parsed_machine_info
@@ -73,20 +86,23 @@ namespace cfgrecon
       let ins_write_addrs           = Map.find "write address" elem_map |> unbox |> List.map extract_json_address_object |> Map.ofList
       (ins_addr, ins_disas, ins_tid, ins_opc, ins_read_regs, ins_write_regs, ins_read_addrs, ins_write_addrs)
 
-    let private normalize_parsed_instruction base_ins =
+    let inline normalize_parsed_instruction<'T when 'T : comparison> base_ins =
       let (ins_addr, ins_disas, ins_tid, ins_opc, ins_read_regs, ins_write_regs, ins_read_addrs, ins_write_addrs) = base_ins
-      Instruction(Utility.cast_generic<'T> ins_addr, ins_disas, ins_tid, ins_opc,
-                  Map.map (fun _ reg_value -> Utility.cast_generic<'T> reg_value) ins_read_regs,
-                  Map.map (fun _ reg_value -> Utility.cast_generic<'T> reg_value) ins_write_regs,
-                  Map.toList ins_read_addrs |> List.map (fun (address, value) -> (Utility.cast_generic<'T> address, value)) |> Map.ofList,
-                  Map.toList ins_write_addrs |>  List.map (fun (address, value) -> (Utility.cast_generic<'T> address, value)) |> Map.ofList)
+      { address         = Utility.cast_generic<'T> ins_addr;
+        disassemble     = ins_disas;
+        thread_id       = ins_tid;
+        opcode          = ins_opc;
+        read_registers  = Map.map (fun _ reg_value -> Utility.cast_generic<'T> reg_value) ins_read_regs;
+        write_registers = Map.map (fun _ reg_value -> Utility.cast_generic<'T> reg_value) ins_write_regs;
+        read_addresses  = Map.toList ins_read_addrs |> List.map (fun (address, value) -> (Utility.cast_generic<'T> address, value)) |> Map.ofList;
+        write_addresses =  Map.toList ins_write_addrs |>  List.map (fun (address, value) -> (Utility.cast_generic<'T> address, value)) |> Map.ofList }
 
-    let private get_instructions_from_chunk (chunk:byte[]) =
+    let private get_instructions_from_chunk<'T when 'T : comparison> (chunk:byte[]) =
       try
         let json_chunk = Chiron.Parsing.Json.parse(string chunk)
         let chunk_map : Map<string, obj> = unbox json_chunk
         let chunk_info_list = Map.find "chunk" chunk_map |> unbox |> Map.toList
-        List.map (parse_json_chunk_element >> normalize_parsed_instruction) chunk_info_list |> Some
+        List.map (parse_json_chunk_element >> normalize_parsed_instruction<'T>) chunk_info_list |> Some
       with
         | _ -> None
 

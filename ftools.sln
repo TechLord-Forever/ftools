@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "ftools", "ftools.fsproj", "{9C6A4317-A3A8-45F7-8EC5-41E25D0BF7E0}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ftools", "ftools.fsproj", "{9C6A4317-A3A8-45F7-8EC5-41E25D0BF7E0}"
 EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "cfgrec", "cfgrec\cfgrec.fsproj", "{D59E5EFE-C8AB-42AF-B516-5E2E9DEAEFF9}"
 EndProject

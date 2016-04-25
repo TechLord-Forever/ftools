@@ -6,8 +6,9 @@
   <MonoDevelop.Ide.Workbench ActiveDocument="cfgrec/DataExtraction.fs">
     <Files>
       <File FileName="cfgrec/Program.fs" Line="1" Column="1" />
-      <File FileName="cfgrec/DataExtraction.fs" Line="60" Column="1" />
-      <File FileName="cfgrec/Utilitiy.fs" Line="18" Column="54" />
+      <File FileName="cfgrec/DataExtraction.fs" Line="100" Column="71" />
+      <File FileName="cfgrec/Utilitiy.fs" Line="1" Column="1" />
+      <File FileName="cfgrec/Machine.fs" Line="3" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
