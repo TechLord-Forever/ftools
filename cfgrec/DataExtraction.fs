@@ -20,45 +20,11 @@ namespace cfgrecon
       member v.read_addresses  = ins_read_addrs
       member v.write_address   = ins_write_addrs
 
-    // type MemoryMap<'T when 'T : comparison> = Map<'T, uint8>
-    // type RegisterMap<'T> = Map<string, 'T>
-
-    // type Instruction<'T when 'T : comparison> =
-    //   { address           : 'T;
-    //     disassemble       : string;
-    //     thread_id         : uint32;
-    //     opcode            : byte[];
-    //     read_registers    : RegisterMap<'T>;
-    //     written_registers : RegisterMap<'T>;
-    //     read_addresses    : MemoryMap<'T>;
-    //     written_addresses : MemoryMap<'T> }
-
-    // type TraceInfo<'T when 'T : comparison> = { machine: MachineInfo;
-    //                                             trace: seq<Instruction<'T>> }
-
-    // type BaseInstruction (ins_addr : uint64,
-    //                       ins_disas : string,
-    //                       ins_tid : uint32,
-    //                       ins_opc : byte[],
-    //                       ins_read_regs : RegisterMap<uint64>,
-    //                       ins_write_regs : RegisterMap<uint64>,
-    //                       ins_read_addrs : MemoryMap<uint64>,
-    //                       ins_write_addrs : MemoryMap<uint64>) =
-    //   member x.address = ins_addr
-    //   member x.disassemble = ins_disas
+   type TraceInfo (parsed_machine_info, parsed_instructions) =
+     member v.machine_info = parsed_machine_info
+     member v.instructions = parsed_instructions
 
   module DataExtraction =
-    // let make_instruction (ins_addr, ins_disas, ins_thread_id, ins_opcode,
-    //                       read_regs, written_regs, read_addrs, written_addrs) =
-    //   { address           = ins_addr;
-    //     disassemble       = ins_disas;
-    //     thread_id         = ins_thread_id;
-    //     opcode            = ins_opcode;
-    //     read_registers    = read_regs;
-    //     written_registers = written_regs;
-    //     read_addresses    = read_addrs;
-    //     written_addresses = written_addrs }
-
     // first read a uint32 value since it specifies the length of json serialized data, next read the data
     let private extract_packed_data (reader:System.IO.BinaryReader) =
       reader.ReadUInt32() |> int |> reader.ReadBytes
@@ -71,41 +37,18 @@ namespace cfgrecon
     //    }
     //  }
     let private get_machine_information (header:byte[]) =
-      let json_header                            = Chiron.Parsing.Json.parse (string header)
-      let header_map : Map<string, obj>          = unbox json_header
-      let header_info_map : Map<string, decimal> = Map.find "header" header_map |> unbox
-      let parsed_arch                            = Map.find "architecture" header_info_map |> unbox<decimal> |> System.Decimal.ToUInt32
-      let parsed_addrlen                         = Map.find "address size" header_map |> unbox<decimal> |> System.Decimal.ToUInt32
-      match (int parsed_arch) with
-        | 0 -> { arch = X86; address_size = parsed_addrlen }
-        | 1 -> { arch = X86_64; address_size = parsed_addrlen }
-        | _ -> failwith "parse_marchine_information: unknown architecture"
-
-
-    // an example of the json form for a chunk of instructions:
-    // {
-    //   "chunk": {
-    //     [
-    //        {
-    //           "address": ...,
-    //           "disassemble": ...,
-    //           "thread_id": ...,
-    //           "opcode":
-    //           "read_registers": [
-    //             "eax": 39048,
-    //             "ebx": ...
-    //           ],
-    //           "write_registers": [ ... ],
-    //           "read_addresses": [
-    //             "0x1343": 843451,
-    //             ...
-    //           ],
-    //           "write_addresses": ...
-    //        },
-    //        ...
-    //     ]
-    //   }
-    // }
+      try
+        let json_header                            = Chiron.Parsing.Json.parse (string header)
+        let header_map : Map<string, obj>          = unbox json_header
+        let header_info_map : Map<string, decimal> = Map.find "header" header_map |> unbox
+        let parsed_arch                            = Map.find "architecture" header_info_map |> unbox<decimal> |> System.Decimal.ToUInt32
+        let parsed_addrlen                         = Map.find "address size" header_map |> unbox<decimal> |> System.Decimal.ToUInt32
+        match (int parsed_arch) with
+          | 0 -> Some { arch = X86; address_size = parsed_addrlen }
+          | 1 -> Some { arch = X86_64; address_size = parsed_addrlen }
+          | _ -> None
+      with
+        | _ -> None
 
     let private extract_json_register_object reg_obj =
       let single_reg_map:Map<string, decimal> = unbox reg_obj
@@ -132,42 +75,34 @@ namespace cfgrecon
 
     let private normalize_parsed_instruction base_ins =
       let (ins_addr, ins_disas, ins_tid, ins_opc, ins_read_regs, ins_write_regs, ins_read_addrs, ins_write_addrs) = base_ins
-      Instruction(ins_addr, ins_disas, ins_tid, ins_opc,
+      Instruction(Utility.cast_generic<'T> ins_addr, ins_disas, ins_tid, ins_opc,
                   Map.map (fun _ reg_value -> Utility.cast_generic<'T> reg_value) ins_read_regs,
                   Map.map (fun _ reg_value -> Utility.cast_generic<'T> reg_value) ins_write_regs,
                   Map.toList ins_read_addrs |> List.map (fun (address, value) -> (Utility.cast_generic<'T> address, value)) |> Map.ofList,
                   Map.toList ins_write_addrs |>  List.map (fun (address, value) -> (Utility.cast_generic<'T> address, value)) |> Map.ofList)
 
     let private get_instructions_from_chunk (chunk:byte[]) =
-      let json_chunk = Chiron.Parsing.Json.parse(string chunk)
-      let chunk_map : Map<string, obj> = unbox json_chunk
-      let chunk_info_list = Map.find "chunk" chunk_map |> unbox |> Map.toList
-      List.map (parse_json_chunk_element >> normalize_parsed_instruction) chunk_info_list
+      try
+        let json_chunk = Chiron.Parsing.Json.parse(string chunk)
+        let chunk_map : Map<string, obj> = unbox json_chunk
+        let chunk_info_list = Map.find "chunk" chunk_map |> unbox |> Map.toList
+        List.map (parse_json_chunk_element >> normalize_parsed_instruction) chunk_info_list |> Some
+      with
+        | _ -> None
+
+    let parse_trace_file filename =
+      use trace_reader = new System.IO.BinaryReader(System.IO.File.OpenRead(filename))
+      let parsed_machine_info = extract_packed_data trace_reader |> get_machine_information
+      match parsed_machine_info with
+        | None -> None
+        | Some machine_info ->
+          let trace_instructions = ref Seq.empty
+          let should_continue_parsing = ref true
+          while !should_continue_parsing do
+            let new_chunk_ins  = extract_packed_data trace_reader |> get_instructions_from_chunk
+            match new_chunk_ins with
+              | None -> should_continue_parsing := false
+              | Some chunk_ins -> trace_instructions := Seq.ofList chunk_ins |> Seq.append !trace_instructions
+          TraceInfo(machine_info, trace_instructions) |> Some
 
 
-    // let private parse_base_instructions (chunk:byte[]) =
-    //   let json_chunk = Chiron.Parsing.Json.parse (string chunk)
-    //   let chunk_map : Map<string, obj> = unbox json_chunk
-    //   let chunk_info_list = Map.toList (unbox <| Map.find "chunk" chunk_map)
-    //   List.map parse_json_chunk_element chunk_info_list
-
-    // let private convert<'T> = Utility.cast_generic<'T>
-    // let private inline convert = Utility.convert_static
-
-    // let private convert_base_instruction base_ins =
-    //   match base_ins with
-    //     | (address, disassemble, thread_id, opcode, read_registers, write_registers, read_addresses, write_addresses) ->
-    //       Instruction(address, disassemble, thread_id, opcode,
-    //                   Map.map (fun _ reg_value -> reg_value) read_registers,
-    //                   Map.map (fun _ reg_value -> reg_value) write_registers,
-    //                   Map.toList read_addresses |> List.map (fun (address, value) -> (address, value)) |> Map.ofList,
-    //                   Map.toList write_addresses |>  List.map (fun (address, value) -> (address, value)) |> Map.ofList)
-
-    // let private get_instruction_from_chunk (chunk:byte[]) =
-    //   parse_base_instructions chunk |> List.map convert_base_instruction
-
-
-
-    // let parse_trace_file filename =
-    //   use trace_reader = new System.IO.BinaryReader(System.IO.File.OpenRead(filename))
-    //   let machine_info = extract_packed_data trace_reader |> parse_machine_information
