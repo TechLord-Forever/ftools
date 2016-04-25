@@ -1,41 +1,19 @@
 namespace cfgrecon
 
-  [<AutoOpen>]
-  module Machine =
-    type Architecture =
-      | X86
-      | X86_64
-
-    type MachineInfo = { arch: Architecture;
-                         address_size: uint32 }
-
-    type MemoryMap<'T when 'T : comparison> = Map<'T, uint8>
-    type RegisterMap<'T> = Map<string, 'T>
-
-    type Instruction<'T when 'T : comparison> = { address         : 'T;
-                                                  disassemble     : string;
-                                                  thread_id       : uint32;
-                                                  opcode          : byte[];
-                                                  read_registers  : RegisterMap<'T>;
-                                                  write_registers : RegisterMap<'T>;
-                                                  read_addresses  : MemoryMap<'T>;
-                                                  write_addresses : MemoryMap<'T> }
-
-    type TraceInfo<'T when 'T : comparison> = { machine_info : MachineInfo;
-                                                instructions : seq<Instruction<'T>> }
-
   module DataExtraction =
     // first read a uint32 value since it specifies the length of json serialized data, next read the data
     let private extract_packed_data (reader:System.IO.BinaryReader) =
       reader.ReadUInt32() |> int |> reader.ReadBytes
 
-    // an example of json form for the machine's information:
-    // {
-    //   "header": {
-    //     "architecture": 0,
-    //     "address size": 32
-    //    }
-    //  }
+(*
+  an example of json form for the machine's information:
+  {
+    "header": {
+      "architecture": 0,
+      "address size": 32
+    }
+  }
+*)
     let private get_machine_information_from_header (header:byte[]) =
       try
         let json_header                            = Chiron.Parsing.Json.parse (string header)
@@ -70,6 +48,32 @@ namespace cfgrecon
       (fst single_addr_array.[0] |> System.UInt64.Parse,
        snd single_addr_array.[0] |>  System.Decimal.ToUInt64 |> uint8)
 
+(*
+   an example of the json form for a chunk of instructions:
+   {
+     "chunk": {
+      [
+         {
+            "address": ...,
+            "disassemble": ...,
+            "thread_id": ...,
+            "opcode":
+            "read_registers": [
+              "eax": 39048,
+              "ebx": ...
+            ],
+            "write_registers": [ ... ],
+            "read_addresses": [
+              "0x1343": 843451,
+              ...
+            ],
+            "write_addresses": ...
+         },
+         ...
+      ]
+     }
+   }
+*)
     let private parse_json_chunk_element chunk_elem =
       let elem_map:Map<string, obj> = unbox chunk_elem
       let ins_addr                  = Map.find "address" elem_map |> unbox<decimal> |>  System.Decimal.ToUInt64

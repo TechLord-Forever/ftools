@@ -7,6 +7,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>cfgrec</RootNamespace>
     <AssemblyName>cfgrec</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
@@ -25,9 +26,6 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
-    <Reference Include="protobuf-net">
-      <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
-    </Reference>
     <Reference Include="QuickGraph.Data">
       <HintPath>..\packages\QuickGraphPCL.3.6.61114.2\lib\net40-client\QuickGraph.Data.dll</HintPath>
     </Reference>
@@ -40,17 +38,8 @@
     <Reference Include="QuickGraph.Serialization">
       <HintPath>..\packages\QuickGraphPCL.3.6.61114.2\lib\net40-client\QuickGraph.Serialization.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="FsPickler">
-      <HintPath>..\packages\FsPickler.2.1.0\lib\net40\FsPickler.dll</HintPath>
-    </Reference>
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml" />
-    <Reference Include="MsgPack">
-      <HintPath>..\packages\MsgPack.0.1.0.2011042300\lib\net40\MsgPack.dll</HintPath>
-    </Reference>
     <Reference Include="Chiron">
       <HintPath>..\packages\Chiron.6.1.0\lib\net40\Chiron.dll</HintPath>
     </Reference>
@@ -69,6 +58,15 @@
     <Reference Include="FSharpPlus">
       <HintPath>..\packages\FSharpPlus.1.0.0-CI00018\lib\net40\FSharpPlus.dll</HintPath>
     </Reference>
+    <Reference Include="FsPickler">
+      <HintPath>..\packages\FsPickler.2.1.0\lib\net45\FsPickler.dll</HintPath>
+    </Reference>
+    <Reference Include="Froto.Core">
+      <HintPath>..\packages\Froto.Core.0.2.1\lib\net45\Froto.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Froto.Parser">
+      <HintPath>..\packages\Froto.Parser.0.2.1\lib\net45\Froto.Parser.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
@@ -76,6 +74,7 @@
     <Compile Include="Machine.fs" />
     <Compile Include="DataExtraction.fs" />
     <Compile Include="DataPresentation.fs" />
+    <Compile Include="ProtobufExtraction.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
   <ItemGroup>
