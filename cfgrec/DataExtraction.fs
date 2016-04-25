@@ -21,21 +21,8 @@ namespace cfgrecon
                                                   read_addresses  : MemoryMap<'T>;
                                                   write_addresses : MemoryMap<'T> }
 
-    // type Instruction<'T when 'T : comparison> (ins_addr, ins_disas, ins_tid, ins_opc,
-    //                                            ins_read_regs : RegisterMap<'T>, ins_write_regs : RegisterMap<'T>,
-    //                                            ins_read_addrs : MemoryMap<'T>, ins_write_addrs : MemoryMap<'T>) =
-    //   member v.address         = ins_addr
-    //   member v.disassemble     = ins_disas
-    //   member v.thread_id       = ins_tid
-    //   member v.opcode          = ins_opc
-    //   member v.read_registers  = ins_read_regs
-    //   member v.write_registers = ins_write_regs
-    //   member v.read_addresses  = ins_read_addrs
-    //   member v.write_address   = ins_write_addrs
-
-   type TraceInfo (parsed_machine_info, parsed_instructions) =
-     member v.machine_info = parsed_machine_info
-     member v.instructions = parsed_instructions
+    type TraceInfo<'T when 'T : comparison> = { machine_info : MachineInfo;
+                                                instructions : seq<Instruction<'T>> }
 
   module DataExtraction =
     // first read a uint32 value since it specifies the length of json serialized data, next read the data
@@ -49,7 +36,7 @@ namespace cfgrecon
     //     "address size": 32
     //    }
     //  }
-    let private get_machine_information (header:byte[]) =
+    let private get_machine_information_from_header (header:byte[]) =
       try
         let json_header                            = Chiron.Parsing.Json.parse (string header)
         let header_map : Map<string, obj>          = unbox json_header
@@ -60,6 +47,15 @@ namespace cfgrecon
           | 0 -> Some { arch = X86; address_size = parsed_addrlen }
           | 1 -> Some { arch = X86_64; address_size = parsed_addrlen }
           | _ -> None
+      with
+        | _ -> None
+
+    let private get_machine_information_from_stream (reader : System.IO.BinaryReader) =
+      try
+        let parsed_machine_info = extract_packed_data reader |> get_machine_information_from_header
+        match parsed_machine_info with
+          | None -> None
+          | Some machine_info -> Some machine_info
       with
         | _ -> None
 
@@ -106,19 +102,35 @@ namespace cfgrecon
       with
         | _ -> None
 
-    let parse_trace_file filename =
-      use trace_reader = new System.IO.BinaryReader(System.IO.File.OpenRead(filename))
-      let parsed_machine_info = extract_packed_data trace_reader |> get_machine_information
-      match parsed_machine_info with
-        | None -> None
-        | Some machine_info ->
-          let trace_instructions = ref Seq.empty
-          let should_continue_parsing = ref true
-          while !should_continue_parsing do
-            let new_chunk_ins  = extract_packed_data trace_reader |> get_instructions_from_chunk
-            match new_chunk_ins with
-              | None -> should_continue_parsing := false
-              | Some chunk_ins -> trace_instructions := Seq.ofList chunk_ins |> Seq.append !trace_instructions
-          TraceInfo(machine_info, trace_instructions) |> Some
+    let private get_instructions_from_stream<'T when 'T : comparison> (reader : System.IO.BinaryReader) =
+      let trace_instructions = ref Seq.empty
+      let should_continue_parsing = ref true
+      while !should_continue_parsing do
+        try
+          let new_chunk_ins = extract_packed_data reader |> get_instructions_from_chunk<'T>
+          match new_chunk_ins with
+            | None -> should_continue_parsing := false
+            | Some chunk_ins -> trace_instructions := Seq.ofList chunk_ins |> Seq.append !trace_instructions
+        with
+          | :? System.IO.EndOfStreamException -> should_continue_parsing := false
+      !trace_instructions
+
+    // let parse_trace_file filename =
+    //   try
+    //     use trace_reader = new System.IO.BinaryReader(System.IO.File.OpenRead(filename))
+    //     let parsed_machine_info = extract_packed_data trace_reader |> get_machine_information
+    //     match parsed_machine_info with
+    //       | None -> None
+    //       | Some parsed_machine ->
+    //         match parsed_machine.arch with
+    //           | X86 ->
+    //             let parsed_instructions = get_instructions_from_stream<uint32> trace_reader
+    //             Some { machine_info = parsed_machine; instructions = parsed_instructions }
+    //           | X86_64 ->
+    //             let parsed_instructions = get_instructions_from_stream<uint64> trace_reader
+    //             Some { machine_info = parsed_machine; instructions = parsed_instructions }
+    //   with
+    //     | _ -> None
+
 
 
