@@ -73,6 +73,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Utilitiy.fs" />
+    <Compile Include="Machine.fs" />
     <Compile Include="DataExtraction.fs" />
     <Compile Include="DataPresentation.fs" />
   </ItemGroup>
