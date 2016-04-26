@@ -8,7 +8,7 @@
  * sub-message of the message.
  */
 
-syntax = "proto2";
+syntax = "proto3";
 
 package trace_format;
 
@@ -24,32 +24,34 @@ enum typeid_address_t
   Bit64 = 1;
 }
 
-enum value_address_t
+message value_address_t
 {
-  optional uint32 value_32 = 0;
-  optional uint64 value_64 = 1;
+  oneof value {
+    uint32 value_32 = 1;
+    uint64 value_64 = 2;
+  }
 }
 
 message address_t
 {
-  required typeid_address_t typeid = 0;
-  required value_address_t value = 1;
+  typeid_address_t typeid = 1;
+  value_address_t value   = 2;
 }
 
 /* register = (name, value) */
 
 message register_t 
 {
-  required string name     = 1;
-  required address_t value = 2;
+  string name     = 1;
+  address_t value = 2;
 }
 
 /* memory = (address, value) */
 
 message memory_t
 {
-  required address_t address = 1;
-  required address_t value   = 2;
+  address_t address = 1;
+  uint32 value      = 2;
 }
 
 /* call = (address, name, is traced) */
@@ -60,33 +62,33 @@ enum typeid_con_info_t
 	REGWRITE = 1;
 	MEMLOAD  = 2;
 	MEMSTORE = 3;
-	// COMMENT       = 0xFF;
 }
 
 message value_con_info_t
 {
-  optional memory_t load_memory = 0;
-
+  oneof con_info {
+    register_t read_register  = 1;
+    register_t write_register = 2;
+    memory_t load_memory      = 3;
+    memory_t store_memory     = 4;
+  }
 }
  
 message con_info_t
 {
-  required typeid_con_info_t typeid  = 0;
-  optional register_t read_register  = 1;
-  optional register_t write_register = 2;
-  optional memory_t load_memory      = 3;
-  optional memory_t store_memory     = 4;
+  typeid_con_info_t typeid = 1;
+  value_con_info_t value   = 2;
 }
 
 /* instruction = (thread_id, address, opcode, concrete_info*) */
 
 message instruction_t
 {
-  required uint32 thread_id         = 0;
-  required address_t address        = 1;
-  required bytes opcode             = 2;
-  repeated con_info_t concrete_info = 3;
-  required string disassemble       = 4;
+  uint32 thread_id                  = 1;
+  address_t address                 = 2;
+  bytes opcode                      = 3;
+  string disassemble                = 4;
+  repeated con_info_t concrete_info = 5;
 }
 
 /* body = (metadata|instruction) */
@@ -113,13 +115,13 @@ message instruction_t
 
 message header_t
 {
-  required architecture_t architecture   = 0;
-  required typeid_address_t address_size = 1;
+  architecture_t architecture   = 1;
+  typeid_address_t address_size = 2;
 }
 
 message chunk_t
 {
-  repeated instruction_t instructions = 0
+  repeated instruction_t instructions = 1;
 }
 
 
