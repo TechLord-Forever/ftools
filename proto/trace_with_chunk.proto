@@ -18,24 +18,28 @@ enum architecture_t
   X86_64 = 1;
 }
 
-enum typeid_address_t
-{
-  Bit32 = 0;
-  Bit64 = 1;
-}
+// enum typeid_address_t
+// {
+//   Bit32 = 0;
+//   Bit64 = 1;
+// }
 
-message value_address_t
+// message value_address_t
+// {
+//   oneof value {
+//     sint32 value_32 = 1;
+//     sint64 value_64 = 2;
+//   }
+// }
+
+message address_t
 {
+  // typeid_address_t typeid = 1;
+  // value_address_t value   = 2;
   oneof value {
     sint32 value_32 = 1;
     sint64 value_64 = 2;
   }
-}
-
-message address_t
-{
-  typeid_address_t typeid = 1;
-  value_address_t value   = 2;
 }
 
 /* register = (name, value) */
@@ -76,8 +80,14 @@ message value_con_info_t
  
 message con_info_t
 {
-  typeid_con_info_t typeid = 1;
-  value_con_info_t value   = 2;
+  // typeid_con_info_t typeid = 1;
+  // value_con_info_t value   = 2;
+  oneof con_info {
+    register_t read_register  = 1;
+    register_t write_register = 2;
+    memory_t load_memory      = 3;
+    memory_t store_memory     = 4;
+  }
 }
 
 /* instruction = (thread_id, address, opcode, concrete_info*) */
@@ -96,7 +106,7 @@ message instruction_t
 message header_t
 {
   architecture_t architecture   = 1;
-  typeid_address_t address_size = 2;
+  // typeid_address_t address_size = 2;
 }
 
 message chunk_t
