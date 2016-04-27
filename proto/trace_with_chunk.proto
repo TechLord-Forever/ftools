@@ -27,8 +27,8 @@ enum typeid_address_t
 message value_address_t
 {
   oneof value {
-    uint32 value_32 = 1;
-    uint64 value_64 = 2;
+    sint32 value_32 = 1;
+    sint64 value_64 = 2;
   }
 }
 
@@ -51,7 +51,7 @@ message register_t
 message memory_t
 {
   address_t address = 1;
-  uint32 value      = 2;
+  sint32 value       = 2;
 }
 
 /* call = (address, name, is traced) */
@@ -84,7 +84,7 @@ message con_info_t
 
 message instruction_t
 {
-  uint32 thread_id                  = 1;
+  int32 thread_id                   = 1;
   address_t address                 = 2;
   bytes opcode                      = 3;
   string disassemble                = 4;

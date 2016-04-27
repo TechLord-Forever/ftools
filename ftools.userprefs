@@ -6,10 +6,10 @@
   <MonoDevelop.Ide.Workbench ActiveDocument="cfgrec/ProtobufExtraction.fs">
     <Files>
       <File FileName="cfgrec/Program.fs" Line="1" Column="1" />
-      <File FileName="cfgrec/DataExtraction.fs" Line="56" Column="11" />
+      <File FileName="cfgrec/DataExtraction.fs" Line="1" Column="1" />
       <File FileName="cfgrec/Utilitiy.fs" Line="1" Column="1" />
       <File FileName="cfgrec/Machine.fs" Line="1" Column="1" />
-      <File FileName="cfgrec/ProtobufExtraction.fs" Line="2" Column="19" />
+      <File FileName="cfgrec/ProtobufExtraction.fs" Line="12" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
