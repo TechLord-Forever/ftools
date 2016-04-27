@@ -12,11 +12,26 @@
     type UnionInt =
       Value_32 of int32 | Value_64 of int64
 
+
+    let m_value32 = ref (int32 0)
+    let decode = m_value32 |> Froto.Core.Encoding.Serializer.hydrateSInt32
+
     // value_address_t
     type ValueOfAddress () =
       inherit Froto.Core.Encoding.MessageBase()
 
       let m_value = ref (Value_32 0)
+
+      // let decode_v32 raw_field =
+      //   let ref_v32 = ref (int32 0)
+      //   Froto.Core.Encoding.Serializer.hydrateSInt32 ref_v32 raw_field;
+      //   // ref_union_int := Value_32 (!ref_v32)
+      //   m_value := Value_32 (!ref_v32)
+
+      let decode_v64 ref_union_int raw_field =
+        let ref_v64 = ref (int64 0)
+        Froto.Core.Encoding.Serializer.hydrateSInt64 ref_v64 raw_field;
+        ref_union_int := Value_64 (!ref_v64)
 
       member x.Value with get() = !m_value and set(v) = m_value := v
 
@@ -28,6 +43,19 @@
           | Value_32 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateSInt32 1) zc_buffer
           | Value_64 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateSInt64 2) zc_buffer
 
+      override x.DecoderRing =
+        let decode_v32_callback =
+          fun raw_field ->
+            let ref_v32 = ref (int32 0)
+            Froto.Core.Encoding.Serializer.hydrateSInt32 ref_v32 raw_field
+            m_value := Value_32 (!ref_v32)
+        let decode_v64_callback =
+          fun raw_field ->
+            let ref_v64 = ref (int64 0)
+            Froto.Core.Encoding.Serializer.hydrateSInt64 ref_v64 raw_field
+            m_value := Value_64 (!ref_v64)
+        Map.ofList [ 1, decode_v32_callback
+                     2, decode_v64_callback ]
 
       static member FromArraySegment (buffer : System.ArraySegment<byte>) =
         let self = ValueOfAddress()

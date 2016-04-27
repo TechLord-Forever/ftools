@@ -91,26 +91,6 @@ message instruction_t
   repeated con_info_t concrete_info = 5;
 }
 
-/* body = (metadata|instruction) */
-
-// enum typeid_body_t
-// {
-// 	METADATA    = 0x0;
-// 	INSTRUCTION = 0x1;
-// }
-
-// message body_t
-// {
-//   required typeid_body_t typeid      = 1;
-//   optional metadata_t metadata       = 2;
-//   optional instruction_t instruction = 3;
-// }
-
-// message chunk_t
-// {
-//   repeated body_t body = 1;
-// }
-
 /* header = (architecture, address size) */
 
 message header_t
@@ -123,12 +103,3 @@ message chunk_t
 {
   repeated instruction_t instructions = 1;
 }
-
-
-/* trace = (header, body*) */
-
-// message trace_t
-// {
-// 	required header_t header = 0;
-// 	repeated body_t body     = 1;
-// }
