@@ -9,69 +9,71 @@
     type Address () =
       inherit Froto.Core.Encoding.MessageBase()
 
-      let m_value = ref (Value_32 0)
+      (* begin of primary constructor *)
+      let m_value = ref (Value_32 Unchecked.defaultof<int32>)
 
-      let decode_v64 ref_union_int raw_field =
-        let ref_v64 = ref (int64 0)
-        Froto.Core.Encoding.Serializer.hydrateSInt64 ref_v64 raw_field;
-        ref_union_int := Value_64 (!ref_v64)
+      let decode_v32_callback =
+        fun raw_field ->
+          let ref_v32 = ref (int32 0)
+          Froto.Core.Encoding.Serializer.hydrateSInt32 ref_v32 raw_field;
+          m_value := Value_32 (!ref_v32)
+
+      let decode_v64_callback =
+        fun raw_field ->
+          let ref_v64 = ref (int64 0)
+          Froto.Core.Encoding.Serializer.hydrateSInt64 ref_v64 raw_field;
+          m_value := Value_64 (!ref_v64)
+
+      let m_decoder_ring = Map.ofList [ 1, decode_v32_callback
+                                        2, decode_v64_callback ]
+        (* end of primary constructor *)
 
       member x.Value with get() = !m_value and set(v) = m_value := v
 
       override x.Clear () =
-        m_value := (Value_32 0)
+        m_value := (Value_32 Unchecked.defaultof<int32>)
 
       override x.Encode zc_buffer =
         match !m_value with
           | Value_32 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateSInt32 1) zc_buffer
           | Value_64 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateSInt64 2) zc_buffer
 
-      override x.DecoderRing =
-        let decode_v32_callback =
-          fun raw_field ->
-            let ref_v32 = ref (int32 0)
-            Froto.Core.Encoding.Serializer.hydrateSInt32 ref_v32 raw_field;
-            m_value := Value_32 (!ref_v32)
-        let decode_v64_callback =
-          fun raw_field ->
-            let ref_v64 = ref (int64 0)
-            Froto.Core.Encoding.Serializer.hydrateSInt64 ref_v64 raw_field;
-            m_value := Value_64 (!ref_v64)
-        Map.ofList [ 1, decode_v32_callback
-                     2, decode_v64_callback ]
+      override x.DecoderRing = m_decoder_ring
 
       static member FromArraySegment (buffer : System.ArraySegment<byte>) =
         let self = Address()
         self.Merge(buffer) |> ignore
         self
+
     and UnionInt =
       Value_32 of int32 | Value_64 of int64
 
+    // register_t
     type Register () =
       inherit Froto.Core.Encoding.MessageBase()
 
-      let m_name = ref (string "")
+      let m_name = ref Unchecked.defaultof<string>
       let m_value = ref (Address())
 
-    // // address_t
-    // type Address () =
-    //   inherit Froto.Core.Encoding.MessageBase()
+      let m_decoder_ring = Map.ofList [ 1, m_name |> Froto.Core.Encoding.Serializer.hydrateString
+                                        2, m_value |> Froto.Core.Encoding.Serializer.hydrateMessage (Address.FromArraySegment) ]
 
-    //   let m_typeid = ref (TypeIdOfAddress.Bit32)
-    //   let m_value = ref (ValueOfAddress())
+      member x.Name with get() = !m_name and set(v) = m_name := v
+      member x.Value with get () = !m_value and set(v) = m_value := v
 
-    //   member x.Typeid with get() = !m_typeid and set(v) = m_typeid := v
-    //   member x.Value with get() = !m_value and set(v) = m_value := v
+      override x.Clear () =
+        m_name := Unchecked.defaultof<string>;
+        m_value := Address()
 
-    //   override x.Clear () =
-    //     m_typeid := TypeIdOfAddress.Bit32
-    //     m_value := ValueOfAddress()
+      override x.Encode zc_buffer =
+        let encode =
+          (!m_name |> Froto.Core.Encoding.Serializer.dehydrateString 1) >>
+          (!m_value |> Froto.Core.Encoding.Serializer.dehydrateMessage 2)
+        encode zc_buffer
 
-    //   override x.Encode zc_buffer =
-    //     let encode =
-    //       (!m_typeid |> Froto.Core.Encoding.Serializer.dehydrateDefaultedVarint TypeIdOfAddress.Bit32 1) >>
-    //       (!m_value |> Froto.Core.Encoding.Serializer.dehydrateMessage 2)
-    //     encode zc_buffer
+      override x.DecoderRing = m_decoder_ring
 
-    //   override x.DecoderRing =
-    //     Map.ofList [ 1, m_typeid |> Froto.Core.Encoding.Serializer.hydrateMessage ()]
+      static member FromArraySegment (buffer : System.ArraySegment<byte>) =
+        let self = Register()
+        self.Merge(buffer) |> ignore
+        self
