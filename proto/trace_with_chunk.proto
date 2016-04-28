@@ -60,29 +60,29 @@ message memory_t
 
 /* call = (address, name, is traced) */
 
-enum typeid_con_info_t
-{
-	REGREAD  = 0;
-	REGWRITE = 1;
-	MEMLOAD  = 2;
-	MEMSTORE = 3;
-}
+// enum typeid_con_info_t
+// {
+// 	REGREAD  = 0;
+// 	REGWRITE = 1;
+// 	MEMLOAD  = 2;
+// 	MEMSTORE = 3;
+// }
 
-message value_con_info_t
-{
-  oneof con_info {
-    register_t read_register  = 1;
-    register_t write_register = 2;
-    memory_t load_memory      = 3;
-    memory_t store_memory     = 4;
-  }
-}
+// message value_con_info_t
+// {
+//   oneof con_info {
+//     register_t read_register  = 1;
+//     register_t write_register = 2;
+//     memory_t load_memory      = 3;
+//     memory_t store_memory     = 4;
+//   }
+// }
  
-message con_info_t
+message concrete_info_t
 {
   // typeid_con_info_t typeid = 1;
   // value_con_info_t value   = 2;
-  oneof con_info {
+  oneof value {
     register_t read_register  = 1;
     register_t write_register = 2;
     memory_t load_memory      = 3;
