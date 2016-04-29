@@ -18,24 +18,9 @@ enum architecture_t
   X86_64 = 1;
 }
 
-// enum typeid_address_t
-// {
-//   Bit32 = 0;
-//   Bit64 = 1;
-// }
-
-// message value_address_t
-// {
-//   oneof value {
-//     sint32 value_32 = 1;
-//     sint64 value_64 = 2;
-//   }
-// }
-
+/* address = value_32 | value_64 */
 message address_t
 {
-  // typeid_address_t typeid = 1;
-  // value_address_t value   = 2;
   oneof value {
     sint32 value_32 = 1;
     sint64 value_64 = 2;
@@ -43,7 +28,6 @@ message address_t
 }
 
 /* register = (name, value) */
-
 message register_t 
 {
   string name     = 1;
@@ -51,38 +35,16 @@ message register_t
 }
 
 /* memory = (address, value) */
-
 message memory_t
 {
   address_t address = 1;
   sint32 value       = 2;
 }
 
-/* call = (address, name, is traced) */
-
-// enum typeid_con_info_t
-// {
-// 	REGREAD  = 0;
-// 	REGWRITE = 1;
-// 	MEMLOAD  = 2;
-// 	MEMSTORE = 3;
-// }
-
-// message value_con_info_t
-// {
-//   oneof con_info {
-//     register_t read_register  = 1;
-//     register_t write_register = 2;
-//     memory_t load_memory      = 3;
-//     memory_t store_memory     = 4;
-//   }
-// }
- 
+/* concrete_info = read_reg | write_reg | load_mem | store_mem */
 message concrete_info_t
 {
-  // typeid_con_info_t typeid = 1;
-  // value_con_info_t value   = 2;
-  oneof value {
+   oneof value {
     register_t read_register  = 1;
     register_t write_register = 2;
     memory_t load_memory      = 3;
@@ -90,25 +52,23 @@ message concrete_info_t
   }
 }
 
-/* instruction = (thread_id, address, opcode, concrete_info*) */
-
+/* instruction = (thread_id, address, opcode, disassemble, c_info*) */
 message instruction_t
 {
-  int32 thread_id                   = 1;
-  address_t address                 = 2;
-  bytes opcode                      = 3;
-  string disassemble                = 4;
-  repeated con_info_t concrete_info = 5;
+  int32 thread_id                 = 1;
+  address_t address               = 2;
+  bytes opcode                    = 3;
+  string disassemble              = 4;
+  repeated concrete_info_t c_info = 5;
 }
 
 /* header = (architecture, address size) */
-
 message header_t
 {
-  architecture_t architecture   = 1;
-  // typeid_address_t address_size = 2;
+  architecture_t architecture = 1;
 }
 
+/* chunk = instruction* */
 message chunk_t
 {
   repeated instruction_t instructions = 1;
