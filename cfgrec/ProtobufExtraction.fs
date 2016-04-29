@@ -178,3 +178,103 @@
       | LoadMemory of Memory
       | StoreMemory of Memory
       | None
+
+    // instruction_t
+    type Instruction () =
+      inherit Froto.Core.Encoding.MessageBase()
+
+      (* begin of primary constructor *)
+      let m_thread_id = ref Unchecked.defaultof<int32>
+      let m_address = ref (Address())
+      let m_opcode = ref Unchecked.defaultof<byte[]>
+      let m_disassemble = ref Unchecked.defaultof<string>
+      let m_c_info = ref List.empty<ConcreteInfo>
+
+      let m_decoder_ring =
+        Map.ofList [ 1, m_thread_id |> Froto.Core.Encoding.Serializer.hydrateSInt32
+                     2, m_address |> Froto.Core.Encoding.Serializer.hydrateMessage (Address.FromArraySegment)
+                     3, m_opcode |> Froto.Core.Encoding.Serializer.hydrateBytes
+                     4, m_disassemble |> Froto.Core.Encoding.Serializer.hydrateString
+                     5, m_c_info |> Froto.Core.Encoding.Serializer.hydrateRepeated (Froto.Core.Encoding.Serializer.hydrateMessage (ConcreteInfo.FromArraySegment)) ]
+
+      // let c_info_encode_callback field_num (c_info:ConcreteInfo) =
+      //   Froto.Core.Encoding.Serializer.dehydrateMessage field_num c_info
+
+      (* end of primary constructor *)
+
+      member x.ThreadId with get() = !m_thread_id and set(v) = m_thread_id := v
+      member x.Address with get() = !m_address and set(v) = m_address := v
+      member x.Opcode with get() = !m_opcode and set(v) = m_opcode := v
+      member x.Disassemble with get() = !m_disassemble and set(v) = m_disassemble := v
+      member x.ConcreteInfo with get() = !m_c_info and set(v) = m_c_info := v
+
+      override x.Clear () =
+        m_thread_id := Unchecked.defaultof<int32>;
+        m_address := Address();
+        m_opcode := Unchecked.defaultof<byte[]>;
+        m_disassemble := Unchecked.defaultof<string>;
+        m_c_info := List.empty<ConcreteInfo>
+
+      override x.Encode zc_buffer =
+        let encode =
+          (Froto.Core.Encoding.Serializer.dehydrateSInt32 1 !m_thread_id) >>
+          (Froto.Core.Encoding.Serializer.dehydrateMessage 2 !m_address) >>
+          (Froto.Core.Encoding.Serializer.dehydrateBytes 3 <| System.ArraySegment(!m_opcode)) >>
+          (Froto.Core.Encoding.Serializer.dehydrateString 4 !m_disassemble) >>
+          (Froto.Core.Encoding.Serializer.dehydrateRepeated Froto.Core.Encoding.Serializer.dehydrateMessage 5 !m_c_info)
+        encode zc_buffer
+
+      override x.DecoderRing = m_decoder_ring
+
+      static member FromArraySegment (buffer:System.ArraySegment<byte>) =
+        let self = Instruction()
+        ignore <| self.Merge(buffer)
+        self
+
+    type Header () =
+      inherit Froto.Core.Encoding.MessageBase()
+
+      (* begin of primary constructor *)
+      let m_arch = ref Architecture.X86
+
+      let m_decoder_ring = Map.ofList [ 1, m_arch |> Froto.Core.Encoding.Serializer.hydrateEnum ]
+      (* end of primary constructor *)
+
+      member x.Architecture with get() = !m_arch and set(v) = m_arch := v
+
+      override x.Clear () = m_arch := Architecture.X86
+
+      override x.Encode zc_buffer =
+        Froto.Core.Encoding.Serializer.dehydrateDefaultedVarint Architecture.X86 1 !m_arch zc_buffer
+
+      override x.DecoderRing = m_decoder_ring
+
+      static member FromArraySegment (buffer:System.ArraySegment<byte>) =
+        let self = Header()
+        ignore <| self.Merge(buffer)
+        self
+
+    type Chunk () =
+      inherit Froto.Core.Encoding.MessageBase()
+
+      (* begin of primary constructor *)
+      let m_insts = ref List.empty<Instruction>
+
+      let m_decoder_ring =
+        Map.ofList [ 1, m_insts |> Froto.Core.Encoding.Serializer.hydrateRepeated (Froto.Core.Encoding.Serializer.hydrateMessage (Instruction.FromArraySegment)) ]
+      (* end of primary constructor *)
+
+      member x.Instructions with get() = !m_insts and set(v) = m_insts := v
+
+      override x.Clear () = m_insts := List.empty<Instruction>
+
+      override x.Encode zc_buffer =
+        Froto.Core.Encoding.Serializer.dehydrateRepeated Froto.Core.Encoding.Serializer.dehydrateMessage 1 !m_insts zc_buffer
+
+      override x.DecoderRing = m_decoder_ring
+
+      static member FromArraySegment (buffer:System.ArraySegment<byte>) =
+        let self = Chunk()
+        ignore <| self.Merge(buffer)
+        self
+

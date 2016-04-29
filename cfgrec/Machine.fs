@@ -1,6 +1,6 @@
 ﻿namespace cfgrecon
 
-  [<AutoOpen>]
+  // [<AutoOpen>]
   module Machine =
     type Architecture =
       | X86
