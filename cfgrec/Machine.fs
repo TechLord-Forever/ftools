@@ -6,8 +6,8 @@
       | X86
       | X86_64
 
-    type MachineInfo = { arch: Architecture;
-                         address_size: uint32 }
+    // type MachineInfo = { arch: Architecture;
+    //                      address_size: uint32 }
 
     type MemoryMap<'T when 'T : comparison> = Map<'T, uint8>
     type RegisterMap<'T> = Map<string, 'T>
@@ -21,5 +21,5 @@
                                                   read_addresses  : MemoryMap<'T>;
                                                   write_addresses : MemoryMap<'T> }
 
-    type TraceInfo<'T when 'T : comparison> = { machine_info : MachineInfo;
+    type TraceInfo<'T when 'T : comparison> = { arch : Architecture;
                                                 instructions : seq<Instruction<'T>> }

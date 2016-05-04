@@ -10,8 +10,8 @@
       inherit Froto.Core.Encoding.MessageBase()
 
       (* begin of primary constructor *)
-      // let m_value = ref (Value_32 Unchecked.defaultof<int32>)
-      let m_value = ref None
+      let m_value = ref (Value_32 Unchecked.defaultof<int32>)
+      // let m_value = ref None
 
       let decode_v32_callback =
         fun raw_field ->
@@ -38,7 +38,7 @@
         match !m_value with
           | Value_32 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateSInt32 1) zc_buffer
           | Value_64 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateSInt64 2) zc_buffer
-          | None -> failwith "invalid value"
+          // | _ -> failwith "invalid value"
 
       override x.DecoderRing = m_decoder_ring
 
@@ -50,7 +50,7 @@
     and UnionInt =
       | Value_32 of int32
       | Value_64 of int64
-      | None
+      // | None
 
     // register_t
     type Register () =
@@ -123,7 +123,8 @@
       inherit Froto.Core.Encoding.MessageBase()
 
       (* begin of primary constructor *)
-      let m_value = ref None
+      // let m_value = ref None
+      let m_value = ref <| ReadRegister (Register())
 
       // false => read, true => write
       let decode_register_callback read_or_write =
@@ -155,7 +156,7 @@
       member x.Value with get() = !m_value and set(v) = m_value := v
 
       override x.Clear () =
-        m_value := None
+        m_value := ReadRegister (Register())
 
       override x.Encode zc_buffer =
         match !m_value with
@@ -163,7 +164,7 @@
           | WriteRegister v -> (v |> Froto.Core.Encoding.Serializer.dehydrateMessage 2) zc_buffer
           | LoadMemory v -> (v |> Froto.Core.Encoding.Serializer.dehydrateMessage 3) zc_buffer
           | StoreMemory v -> (v |> Froto.Core.Encoding.Serializer.dehydrateMessage 4) zc_buffer
-          | None -> failwith "invalid value"
+          | _ -> failwith "invalid value"
 
       override x.DecoderRing = m_decoder_ring
 
@@ -177,7 +178,7 @@
       | WriteRegister of Register
       | LoadMemory of Memory
       | StoreMemory of Memory
-      | None
+      // | None
 
     // instruction_t
     type Instruction () =
@@ -231,6 +232,7 @@
         ignore <| self.Merge(buffer)
         self
 
+    // header_t
     type Header () =
       inherit Froto.Core.Encoding.MessageBase()
 
@@ -261,7 +263,8 @@
       let m_insts = ref List.empty<Instruction>
 
       let m_decoder_ring =
-        Map.ofList [ 1, m_insts |> Froto.Core.Encoding.Serializer.hydrateRepeated (Froto.Core.Encoding.Serializer.hydrateMessage (Instruction.FromArraySegment)) ]
+        Map.ofList [ 1, m_insts |> Froto.Core.Encoding.Serializer.hydrateRepeated
+                                   (Froto.Core.Encoding.Serializer.hydrateMessage Instruction.FromArraySegment) ]
       (* end of primary constructor *)
 
       member x.Instructions with get() = !m_insts and set(v) = m_insts := v
@@ -278,3 +281,38 @@
         ignore <| self.Merge(buffer)
         self
 
+    let private read_data_block (reader:System.IO.BinaryReader) =
+      reader.ReadUInt32() |> int |> reader.ReadBytes
+
+    let extract_machine_info (reader:System.IO.BinaryReader) =
+      try
+        let header_block = read_data_block reader
+        let header_segment = System.ArraySegment(header_block)
+        let header = Header()
+        ignore (header.DeserializeLengthDelimited <| Froto.Core.ZeroCopyBuffer(header_segment))
+        match header.Architecture with
+          | Architecture.X86 -> Some Machine.X86
+          | Architecture.X86_64 -> Some Machine.X86_64
+          | _ -> None
+      with
+        | _ -> None
+
+    let convert_to_explicit_instruction<'T when 'T : comparison> (ins:Instruction) =
+      let address = ins.Address
+      match address.Value with
+        | Value_64 v 
+
+    let extract_instructions (reader:System.IO.BinaryReader) =
+      let extracted_inss = ref Seq.empty
+      let should_continue_parsing = ref true
+      while !should_continue_parsing do
+        try
+          let chunk_block = read_data_block reader
+          let chunk_segment = System.ArraySegment(chunk_block)
+          let chunk = Chunk()
+          ignore (chunk.DeserializeLengthDelimited <| Froto.Core.ZeroCopyBuffer(chunk_segment))
+          let chunk_inss = chunk.Instructions
+          extracted_inss := Seq.ofList chunk_inss |> Seq.append !extracted_inss
+        with
+          | :? System.IO.EndOfStreamException -> should_continue_parsing := false
+      
