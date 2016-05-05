@@ -297,10 +297,26 @@
       with
         | _ -> None
 
+    let convert_to_explicit_address<'T> (addr:Address) =
+      match addr.Value with
+        | Value_64 v -> int64 v |> unbox<'T>
+        | Value_32 v -> int32 v |> unbox<'T>
+
     let convert_to_explicit_instruction<'T when 'T : comparison> (ins:Instruction) =
-      let address = ins.Address
-      match address.Value with
-        | Value_64 v 
+      let explicit_thread_id = ins.ThreadId
+      let explicit_address = convert_to_explicit_address ins.Address
+      let explicit_opcode = ins.Opcode
+      let explicit_disassemble = ins.Disassemble
+      let conc_info_list = ins.ConcreteInfo
+      let mem_load_map = ref Map.empty
+      let mem_store_map = ref Map.empty
+      let reg_read_map = ref Map.empty
+      let reg_write_map = ref Map.empty
+      for conc_info in conc_info_list do
+        match conc_info.Value with
+          | ReadRegister read_reg -> reg_read_map := Map.ofList ((read_reg.Name, convert_to_explicit_address<'T>(read_reg.Value))::(Map.toList !reg_read_map))
+
+
 
     let extract_instructions (reader:System.IO.BinaryReader) =
       let extracted_inss = ref Seq.empty
