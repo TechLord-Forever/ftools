@@ -15,14 +15,16 @@
 
       let decode_v32_callback =
         fun raw_field ->
-          let ref_v32 = ref (int32 0)
-          Froto.Core.Encoding.Serializer.hydrateSInt32 ref_v32 raw_field;
+          let ref_v32 = ref (uint32 0)
+          // Froto.Core.Encoding.Serializer.hydrateSInt32 ref_v32 raw_field;
+          Froto.Core.Encoding.Serializer.hydrateUInt32 ref_v32 raw_field
           m_value := Value_32 (!ref_v32)
 
       let decode_v64_callback =
         fun raw_field ->
-          let ref_v64 = ref (int64 0)
-          Froto.Core.Encoding.Serializer.hydrateSInt64 ref_v64 raw_field;
+          let ref_v64 = ref (uint64 0)
+          // Froto.Core.Encoding.Serializer.hydrateSInt64 ref_v64 raw_field;
+          Froto.Core.Encoding.Serializer.hydrateUInt64 ref_v64 raw_field
           m_value := Value_64 (!ref_v64)
 
       let m_decoder_ring = Map.ofList [ 1, decode_v32_callback
@@ -32,12 +34,14 @@
       member x.Value with get() = !m_value and set(v) = m_value := v
 
       override x.Clear () =
-        m_value := (Value_32 Unchecked.defaultof<int32>)
+        m_value := (Value_32 Unchecked.defaultof<uint32>)
 
       override x.Encode zc_buffer =
         match !m_value with
-          | Value_32 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateSInt32 1) zc_buffer
-          | Value_64 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateSInt64 2) zc_buffer
+          // | Value_32 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateSInt32 1) zc_buffer
+          // | Value_64 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateSInt64 2) zc_buffer
+          | Value_32 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateVarint 1) zc_buffer
+          | Value_64 v -> (v |> Froto.Core.Encoding.Serializer.dehydrateVarint 2) zc_buffer
           // | _ -> failwith "invalid value"
 
       override x.DecoderRing = m_decoder_ring
@@ -48,8 +52,8 @@
         self
 
     and UnionInt =
-      | Value_32 of int32
-      | Value_64 of int64
+      | Value_32 of uint32
+      | Value_64 of uint64
       // | None
 
     // register_t
@@ -302,7 +306,7 @@
         | Value_64 v -> int64 v |> unbox<'T>
         | Value_32 v -> int32 v |> unbox<'T>
 
-    let convert_to_explicit_instruction<'T when 'T : comparison> (ins:Instruction) =
+    let convert_to_explicit_instruction<'T when 'T : comparison> (ins:Instruction) : Machine.Instruction<'T> =
       let explicit_thread_id = ins.ThreadId
       let explicit_address = convert_to_explicit_address ins.Address
       let explicit_opcode = ins.Opcode
@@ -314,8 +318,12 @@
       let reg_write_map = ref Map.empty
       for conc_info in conc_info_list do
         match conc_info.Value with
-          | ReadRegister read_reg -> reg_read_map := Map.ofList ((read_reg.Name, convert_to_explicit_address<'T>(read_reg.Value))::(Map.toList !reg_read_map))
-
+          | ReadRegister read_reg   -> reg_read_map  := Map.ofList ((read_reg.Name, convert_to_explicit_address<'T>(read_reg.Value))::(Map.toList !reg_read_map))
+          | WriteRegister write_reg -> reg_write_map := Map.ofList ((write_reg.Name, convert_to_explicit_address<'T>(write_reg.Value))::(Map.toList !reg_write_map))
+          | LoadMemory load_mem     -> mem_load_map  := Map.ofList ((convert_to_explicit_address<'T>(load_mem.Address), load_mem.Value)::(Map.toList !mem_load_map))
+          | StoreMemory store_mem   -> mem_store_map := Map.ofList ((convert_to_explicit_address<'T>(store_mem.Address), store_mem.Value)::(Map.toList !mem_store_map))
+      { address = explicit_address; disassemble = explicit_disassemble; thread_id = explicit_thread_id; opcode = explicit_opcode;
+        read_registers = !reg_read_map; write_registers = !reg_write_map; load_addresses = !mem_load_map; store_addresses = !mem_store_map }
 
 
     let extract_instructions (reader:System.IO.BinaryReader) =

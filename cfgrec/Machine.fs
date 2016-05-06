@@ -18,8 +18,8 @@
                                                   opcode          : byte[];
                                                   read_registers  : RegisterMap<'T>;
                                                   write_registers : RegisterMap<'T>;
-                                                  read_addresses  : MemoryMap<'T>;
-                                                  write_addresses : MemoryMap<'T> }
+                                                  load_addresses  : MemoryMap<'T>;
+                                                  store_addresses : MemoryMap<'T> }
 
     type TraceInfo<'T when 'T : comparison> = { arch : Architecture;
                                                 instructions : seq<Instruction<'T>> }
