@@ -50,8 +50,7 @@
         let self = Address()
         self.Merge(buffer) |> ignore
         self
-
-    and UnionInt =
+    and private UnionInt =
       | Value_32 of uint32
       | Value_64 of uint64
       // | None
@@ -178,8 +177,7 @@
         let self = ConcreteInfo()
         ignore <| self.Merge(buffer)
         self
-
-    and UnionInfo =
+    and private UnionInfo =
       | ReadRegister of Register
       | WriteRegister of Register
       | LoadMemory of Memory
