@@ -2,15 +2,15 @@
   module ProtobufExtraction =
 
     // architecture_t
-    type Architecture =
+    type private Architecture =
       X86 = 0 | X86_64 = 1
 
     // address_t
-    type Address () =
+    type private Address () =
       inherit Froto.Core.Encoding.MessageBase()
 
       (* begin of primary constructor *)
-      let m_value = ref (Value_32 Unchecked.defaultof<int32>)
+      let m_value = ref (Value_32 Unchecked.defaultof<uint32>)
       // let m_value = ref None
 
       let decode_v32_callback =
@@ -57,7 +57,7 @@
       // | None
 
     // register_t
-    type Register () =
+    type private Register () =
       inherit Froto.Core.Encoding.MessageBase()
 
       (* begin of primary constructor *)
@@ -90,16 +90,17 @@
         self
 
     // memory_t
-    type Memory () =
+    type private Memory () =
       inherit Froto.Core.Encoding.MessageBase()
 
       (* begin of primary constructor *)
       let m_address = ref (Address())
-      let m_value = ref Unchecked.defaultof<int32>
+      let m_value = ref Unchecked.defaultof<uint32>
 
       let m_decoder_ring =
         Map.ofList [ 1, m_address |> Froto.Core.Encoding.Serializer.hydrateMessage (Address.FromArraySegment)
-                     2, m_value |> Froto.Core.Encoding.Serializer.hydrateSInt32 ]
+                     2, m_value |> Froto.Core.Encoding.Serializer.hydrateUInt32 ]
+                     // 2, m_value |> Froto.Core.Encoding.Serializer.hydrateSInt32 ]
       (* end of primary constructor *)
 
       member x.Address with get() = !m_address and set(v) = m_address := v
@@ -107,12 +108,13 @@
 
       override x.Clear () =
         m_address := Address();
-        m_value := Unchecked.defaultof<int32>
+        m_value := Unchecked.defaultof<uint32>
 
       override x.Encode zc_buffer =
         let encode =
           (!m_address |> Froto.Core.Encoding.Serializer.dehydrateMessage 1) >>
-          (!m_value |> Froto.Core.Encoding.Serializer.dehydrateSInt32 2)
+          (!m_value |> Froto.Core.Encoding.Serializer.dehydrateVarint 2)
+          // (!m_value |> Froto.Core.Encoding.Serializer.dehydrateSInt32 2)
         encode zc_buffer
 
       override x.DecoderRing = m_decoder_ring
@@ -123,7 +125,7 @@
         self
 
     // concrete_info_t
-    type ConcreteInfo () =
+    type private ConcreteInfo () =
       inherit Froto.Core.Encoding.MessageBase()
 
       (* begin of primary constructor *)
@@ -168,7 +170,7 @@
           | WriteRegister v -> (v |> Froto.Core.Encoding.Serializer.dehydrateMessage 2) zc_buffer
           | LoadMemory v -> (v |> Froto.Core.Encoding.Serializer.dehydrateMessage 3) zc_buffer
           | StoreMemory v -> (v |> Froto.Core.Encoding.Serializer.dehydrateMessage 4) zc_buffer
-          | _ -> failwith "invalid value"
+          // | _ -> failwith "invalid value"
 
       override x.DecoderRing = m_decoder_ring
 
@@ -185,18 +187,18 @@
       // | None
 
     // instruction_t
-    type Instruction () =
+    type private Instruction () =
       inherit Froto.Core.Encoding.MessageBase()
 
       (* begin of primary constructor *)
-      let m_thread_id = ref Unchecked.defaultof<int32>
+      let m_thread_id = ref Unchecked.defaultof<uint32>
       let m_address = ref (Address())
       let m_opcode = ref Unchecked.defaultof<byte[]>
       let m_disassemble = ref Unchecked.defaultof<string>
       let m_c_info = ref List.empty<ConcreteInfo>
 
       let m_decoder_ring =
-        Map.ofList [ 1, m_thread_id |> Froto.Core.Encoding.Serializer.hydrateSInt32
+        Map.ofList [ 1, m_thread_id |> Froto.Core.Encoding.Serializer.hydrateUInt32
                      2, m_address |> Froto.Core.Encoding.Serializer.hydrateMessage (Address.FromArraySegment)
                      3, m_opcode |> Froto.Core.Encoding.Serializer.hydrateBytes
                      4, m_disassemble |> Froto.Core.Encoding.Serializer.hydrateString
@@ -214,7 +216,7 @@
       member x.ConcreteInfo with get() = !m_c_info and set(v) = m_c_info := v
 
       override x.Clear () =
-        m_thread_id := Unchecked.defaultof<int32>;
+        m_thread_id := Unchecked.defaultof<uint32>;
         m_address := Address();
         m_opcode := Unchecked.defaultof<byte[]>;
         m_disassemble := Unchecked.defaultof<string>;
@@ -222,7 +224,7 @@
 
       override x.Encode zc_buffer =
         let encode =
-          (Froto.Core.Encoding.Serializer.dehydrateSInt32 1 !m_thread_id) >>
+          (Froto.Core.Encoding.Serializer.dehydrateVarint 1 !m_thread_id) >>
           (Froto.Core.Encoding.Serializer.dehydrateMessage 2 !m_address) >>
           (Froto.Core.Encoding.Serializer.dehydrateBytes 3 <| System.ArraySegment(!m_opcode)) >>
           (Froto.Core.Encoding.Serializer.dehydrateString 4 !m_disassemble) >>
@@ -237,7 +239,7 @@
         self
 
     // header_t
-    type Header () =
+    type private Header () =
       inherit Froto.Core.Encoding.MessageBase()
 
       (* begin of primary constructor *)
@@ -260,7 +262,8 @@
         ignore <| self.Merge(buffer)
         self
 
-    type Chunk () =
+    // chunk_t
+    type private Chunk () =
       inherit Froto.Core.Encoding.MessageBase()
 
       (* begin of primary constructor *)
@@ -288,7 +291,7 @@
     let private read_data_block (reader:System.IO.BinaryReader) =
       reader.ReadUInt32() |> int |> reader.ReadBytes
 
-    let extract_machine_info (reader:System.IO.BinaryReader) =
+    let extract_machine_architecture (reader:System.IO.BinaryReader) : Machine.Architecture option =
       try
         let header_block = read_data_block reader
         let header_segment = System.ArraySegment(header_block)
@@ -301,12 +304,12 @@
       with
         | _ -> None
 
-    let convert_to_explicit_address<'T> (addr:Address) =
+    let private convert_to_explicit_address<'T> (addr:Address) =
       match addr.Value with
         | Value_64 v -> int64 v |> unbox<'T>
         | Value_32 v -> int32 v |> unbox<'T>
 
-    let convert_to_explicit_instruction<'T when 'T : comparison> (ins:Instruction) : Machine.Instruction<'T> =
+    let private convert_to_explicit_instruction<'T when 'T : comparison> (ins:Instruction) : Machine.Instruction<'T> =
       let explicit_thread_id = ins.ThreadId
       let explicit_address = convert_to_explicit_address ins.Address
       let explicit_opcode = ins.Opcode
@@ -320,13 +323,12 @@
         match conc_info.Value with
           | ReadRegister read_reg   -> reg_read_map  := Map.ofList ((read_reg.Name, convert_to_explicit_address<'T>(read_reg.Value))::(Map.toList !reg_read_map))
           | WriteRegister write_reg -> reg_write_map := Map.ofList ((write_reg.Name, convert_to_explicit_address<'T>(write_reg.Value))::(Map.toList !reg_write_map))
-          | LoadMemory load_mem     -> mem_load_map  := Map.ofList ((convert_to_explicit_address<'T>(load_mem.Address), load_mem.Value)::(Map.toList !mem_load_map))
-          | StoreMemory store_mem   -> mem_store_map := Map.ofList ((convert_to_explicit_address<'T>(store_mem.Address), store_mem.Value)::(Map.toList !mem_store_map))
+          | LoadMemory load_mem     -> mem_load_map  := Map.ofList ((convert_to_explicit_address<'T>(load_mem.Address), uint8 load_mem.Value)::(Map.toList !mem_load_map))
+          | StoreMemory store_mem   -> mem_store_map := Map.ofList ((convert_to_explicit_address<'T>(store_mem.Address), uint8 store_mem.Value)::(Map.toList !mem_store_map))
       { address = explicit_address; disassemble = explicit_disassemble; thread_id = explicit_thread_id; opcode = explicit_opcode;
         read_registers = !reg_read_map; write_registers = !reg_write_map; load_addresses = !mem_load_map; store_addresses = !mem_store_map }
 
-
-    let extract_instructions (reader:System.IO.BinaryReader) =
+    let extract_instructions<'T when 'T : comparison> (reader:System.IO.BinaryReader) : Machine.Instruction<'T> list  =
       let extracted_inss = ref Seq.empty
       let should_continue_parsing = ref true
       while !should_continue_parsing do
@@ -339,4 +341,4 @@
           extracted_inss := Seq.ofList chunk_inss |> Seq.append !extracted_inss
         with
           | :? System.IO.EndOfStreamException -> should_continue_parsing := false
-      
+      List.map convert_to_explicit_instruction<'T> <| Seq.toList !extracted_inss
