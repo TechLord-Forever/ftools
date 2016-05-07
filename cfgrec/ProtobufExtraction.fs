@@ -1,6 +1,5 @@
 ﻿namespace cfgrecon
   module ProtobufExtraction =
-
     // architecture_t
     type private Architecture =
       X86 = 0 | X86_64 = 1

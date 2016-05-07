@@ -20,3 +20,6 @@
 
     type TraceInfo<'T when 'T : comparison> = { arch : Architecture;
                                                 instructions : seq<Instruction<'T>> }
+
+    let instruction_to_string (ins:Instruction<'T>) =
+      Printf.sprintf "0x%x   %s" ins.address ins.disassemble
