@@ -301,10 +301,11 @@
       with
         | _ -> None
 
-    let private convert_to_explicit_address<'T> (addr:Address) =
+    let private convert_to_explicit_address (addr:Address) =
       match addr.Value with
         | Value_64 v -> int64 v |> unbox<'T>
         | Value_32 v -> int32 v |> unbox<'T>
+    // let inline convert_to_explicit_address (addr:Address) = FSharpPlus.Operators.explicit addr
 
     let private convert_to_explicit_instruction<'T when 'T : comparison> (ins:Instruction) : Machine.Instruction<'T> =
       let explicit_thread_id = ins.ThreadId
@@ -318,10 +319,10 @@
       let reg_write_map = ref Map.empty
       for conc_info in conc_info_list do
         match conc_info.Value with
-          | ReadRegister read_reg   -> reg_read_map  := Map.ofList ((read_reg.Name, convert_to_explicit_address<'T>(read_reg.Value))::(Map.toList !reg_read_map))
-          | WriteRegister write_reg -> reg_write_map := Map.ofList ((write_reg.Name, convert_to_explicit_address<'T>(write_reg.Value))::(Map.toList !reg_write_map))
-          | LoadMemory load_mem     -> mem_load_map  := Map.ofList ((convert_to_explicit_address<'T>(load_mem.Address), uint8 load_mem.Value)::(Map.toList !mem_load_map))
-          | StoreMemory store_mem   -> mem_store_map := Map.ofList ((convert_to_explicit_address<'T>(store_mem.Address), uint8 store_mem.Value)::(Map.toList !mem_store_map))
+          | ReadRegister read_reg   -> reg_read_map  := Map.ofList ((read_reg.Name, convert_to_explicit_address(read_reg.Value))::(Map.toList !reg_read_map))
+          | WriteRegister write_reg -> reg_write_map := Map.ofList ((write_reg.Name, convert_to_explicit_address(write_reg.Value))::(Map.toList !reg_write_map))
+          | LoadMemory load_mem     -> mem_load_map  := Map.ofList ((convert_to_explicit_address(load_mem.Address), uint8 load_mem.Value)::(Map.toList !mem_load_map))
+          | StoreMemory store_mem   -> mem_store_map := Map.ofList ((convert_to_explicit_address(store_mem.Address), uint8 store_mem.Value)::(Map.toList !mem_store_map))
       { address = explicit_address; disassemble = explicit_disassemble; thread_id = explicit_thread_id; opcode = explicit_opcode;
         read_registers = !reg_read_map; write_registers = !reg_write_map; load_addresses = !mem_load_map; store_addresses = !mem_store_map }
 
