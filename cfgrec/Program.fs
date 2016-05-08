@@ -15,11 +15,11 @@ let main argv =
       match machine_arch with
         | Some arch ->
           match arch with
-            | Machine.X86 ->
+            | Machine.Architecture.X86 ->
               let trace = ProtobufExtraction.extract_instructions<uint32> trace_reader
               List.iter (fun ins -> Printf.printfn "%s" (Machine.instruction_to_string ins)) trace
               1
-            | Machine.X86_64 ->
+            | Machine.Architecture.X86_64 ->
               let trace = ProtobufExtraction.extract_instructions<uint64> trace_reader
               List.iter (fun ins -> Printf.printfn "%s" (Machine.instruction_to_string ins)) trace
               1
