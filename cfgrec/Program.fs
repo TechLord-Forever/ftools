@@ -19,15 +19,17 @@ let main argv =
             | Machine.Architecture.X86 ->
               Printf.printfn "architecture: X86"
               let trace = ProtobufExtraction.extract_instructions<uint32> trace_reader
+              Printf.printfn "%d instruction parsed" <| List.length trace
               List.iter (fun ins -> Printf.printfn "%s" (Machine.instruction_to_string ins)) trace
               1
             | Machine.Architecture.X86_64 ->
               Printf.printfn "architecture: X86_64"
               let trace = ProtobufExtraction.extract_instructions<uint64> trace_reader
+              Printf.printfn "%d instruction parsed" <| List.length trace
               List.iter (fun ins -> Printf.printfn "%s" (Machine.instruction_to_string ins)) trace
               1
         | None -> failwith "cannot read machine architecture"
     with
       | :? System.IO.FileNotFoundException -> Printf.printfn "cannot found file %s" argv.[1]; 0
-      | _ -> Printf.printfn "unknown error"; 0
+      | _  as ex -> Printf.printfn "%s" <| ex.ToString(); 0
 
