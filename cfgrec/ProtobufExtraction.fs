@@ -301,7 +301,6 @@
         // let header_zcw = Froto.Core.ZeroCopyBuffer(header_segment)
         // let header = Header()
         // ignore (header.DeserializeLengthDelimited <| Froto.Core.ZeroCopyBuffer(header_zcw.Array))
-        Printf.printfn "hhh"
         match header.Architecture with
           | Architecture.X86 -> Some Machine.Architecture.X86
           | Architecture.X86_64 -> Some Machine.Architecture.X86_64
@@ -341,8 +340,9 @@
         try
           let chunk_block = read_data_block reader
           let chunk_segment = System.ArraySegment(chunk_block)
-          let chunk = Chunk()
-          ignore (chunk.DeserializeLengthDelimited <| Froto.Core.ZeroCopyBuffer(chunk_segment))
+          let chunk = Chunk.FromArraySegment(chunk_segment)
+          // let chunk = Chunk()
+          // ignore (chunk.DeserializeLengthDelimited <| Froto.Core.ZeroCopyBuffer(chunk_segment))
           let chunk_inss = chunk.Instructions
           extracted_inss := Seq.ofList chunk_inss |> Seq.append !extracted_inss
         with
