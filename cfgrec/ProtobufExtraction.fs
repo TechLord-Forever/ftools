@@ -2,7 +2,9 @@
   module ProtobufExtraction =
     // architecture_t
     type private Architecture =
-      X86 = 0 | X86_64 = 1
+      | Unknown = 0
+      | X86     = 1
+      | X86_64  = 2
 
     // address_t
     type private Address () =
@@ -286,17 +288,23 @@
         self
 
     let private read_data_block (reader:System.IO.BinaryReader) =
-      reader.ReadUInt32() |> int |> reader.ReadBytes
+      let block_size = int <| reader.ReadUInt32()
+      Printf.printfn "block size: %d" block_size
+      reader.ReadBytes block_size
 
     let extract_machine_architecture (reader:System.IO.BinaryReader) : Machine.Architecture option =
       try
+        Printf.printfn "extract machine architecture"
         let header_block = read_data_block reader
         let header_segment = System.ArraySegment(header_block)
-        let header = Header()
-        ignore (header.DeserializeLengthDelimited <| Froto.Core.ZeroCopyBuffer(header_segment))
+        let header = Header.FromArraySegment(header_segment)
+        // let header_zcw = Froto.Core.ZeroCopyBuffer(header_segment)
+        // let header = Header()
+        // ignore (header.DeserializeLengthDelimited <| Froto.Core.ZeroCopyBuffer(header_zcw.Array))
+        Printf.printfn "hhh"
         match header.Architecture with
-          | Architecture.X86 -> Some Machine.X86
-          | Architecture.X86_64 -> Some Machine.X86_64
+          | Architecture.X86 -> Some Machine.Architecture.X86
+          | Architecture.X86_64 -> Some Machine.Architecture.X86_64
           | _ -> None
       with
         | _ -> None

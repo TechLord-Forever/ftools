@@ -6,11 +6,12 @@ open cfgrecon
 [<EntryPoint>]
 let main argv =
   if Array.length argv < 1 then
-    Printf.printf "give some trace file"
+    Printf.printfn "please run as ./cfgrec some_trace_file"
     0
   else
     try
-      use trace_reader = new System.IO.BinaryReader(System.IO.File.OpenRead(argv.[1]))
+      Printf.printfn "reading trace from file: %s" argv.[0]
+      use trace_reader = new System.IO.BinaryReader(System.IO.File.OpenRead(argv.[0]))
       let machine_arch = ProtobufExtraction.extract_machine_architecture trace_reader
       match machine_arch with
         | Some arch ->

@@ -3,13 +3,13 @@
     <String>ftools.fsproj</String>
   </DisabledProjects>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="cfgrec/Utilitiy.fs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="cfgrec/TraceTransformation.fs">
     <Files>
-      <File FileName="cfgrec/Program.fs" Line="20" Column="73" />
+      <File FileName="cfgrec/Program.fs" Line="1" Column="1" />
       <File FileName="cfgrec/Utilitiy.fs" Line="1" Column="1" />
-      <File FileName="cfgrec/Machine.fs" Line="24" Column="37" />
-      <File FileName="cfgrec/ProtobufExtraction.fs" Line="329" Column="37" />
-      <File FileName="cfgrec/TraceTransformation.fs" Line="1" Column="19" />
+      <File FileName="cfgrec/Machine.fs" Line="1" Column="1" />
+      <File FileName="cfgrec/ProtobufExtraction.fs" Line="320" Column="41" />
+      <File FileName="cfgrec/TraceTransformation.fs" Line="5" Column="7" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
