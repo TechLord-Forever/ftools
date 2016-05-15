@@ -367,10 +367,10 @@
       with
         | _ -> None
 
-    let private convert_to_explicit_address (addr:Address) =
+    let private convert_to_explicit_address<'T> (addr:Address) =
       match addr.Value with
         | Value_64 v -> int64 v |> unbox<'T>
-        | Value_32 v -> int32 v |> unbox<'T>
+        | Value_32 v -> Printf.printfn "32 bit address"; int32 v |> unbox<'T>
     // let inline convert_to_explicit_address (addr:Address) = FSharpPlus.Operators.explicit addr
 
     let private convert_to_explicit_instruction<'T when 'T : comparison> (ins:Instruction) : Machine.Instruction<'T> =
