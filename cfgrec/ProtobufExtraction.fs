@@ -61,10 +61,18 @@
 
       (* begin of primary constructor *)
       let m_name = ref Unchecked.defaultof<string>
-      let m_value = ref (Address())
+      let m_value = ref Unchecked.defaultof<Address>
+      // let m_value = ref (Address())
+
+      let name_decoder raw_field =
+        let ref_name = ref (Unchecked.defaultof<string>)
+        Froto.Core.Encoding.Serializer.hydrateString ref_name raw_field
+        Printf.printfn "decoding register name"
+        m_name := !ref_name
 
       let m_decoder_ring =
-        Map.ofList [ 1, m_name |> Froto.Core.Encoding.Serializer.hydrateString
+        Map.ofList [ 1, // name_decoder
+                     m_name |> Froto.Core.Encoding.Serializer.hydrateString
                      2, m_value |> Froto.Core.Encoding.Serializer.hydrateMessage (Address.FromArraySegment) ]
       (* end of primary constructor *)
 
@@ -195,10 +203,10 @@
       let m_c_info = ref List.empty<ConcreteInfo>
 
       let thread_id_decoder raw_field =
-        let ref_uint32 = ref (Unchecked.defaultof<uint32>)
-        Froto.Core.Encoding.Serializer.hydrateUInt32 ref_uint32 raw_field
+        let ref_thread_id = ref (Unchecked.defaultof<uint32>)
+        Froto.Core.Encoding.Serializer.hydrateUInt32 ref_thread_id raw_field
         Printf.printfn "decoding thread id"
-        m_thread_id := !ref_uint32
+        m_thread_id := !ref_thread_id
 
       let address_decoder raw_field =
         let ref_address = ref (Unchecked.defaultof<Address>)
@@ -212,23 +220,34 @@
         Printf.printfn "decoding opcode"
         m_opcode := !ref_opcode
 
+      let disassemble_decoder raw_field =
+        let ref_disassemble = ref (Unchecked.defaultof<string>)
+        Froto.Core.Encoding.Serializer.hydrateString ref_disassemble raw_field
+        Printf.printfn "decoding disassemble: %s" !ref_disassemble
+        m_disassemble := !ref_disassemble
+
+      let concrete_info_decoder raw_field =
+        let ref_concrete_infos = ref (Unchecked.defaultof<ConcreteInfo list>)
+        Froto.Core.Encoding.Serializer.hydrateRepeated (Froto.Core.Encoding.Serializer.hydrateMessage ConcreteInfo.FromArraySegment) ref_concrete_infos raw_field
+        Printf.printfn "decoding concrete info"
+        m_c_info := !ref_concrete_infos
+
       let m_decoder_ring =
-        Map.ofList [ 1, thread_id_decoder
-                     // m_thread_id |> Froto.Core.Encoding.Serializer.hydrateUInt32
-                     2, address_decoder
-                     // m_address |> Froto.Core.Encoding.Serializer.hydrateMessage (Address.FromArraySegment)
-                     3, opcode_decoder
-                     // m_opcode |> Froto.Core.Encoding.Serializer.hydrateBytes
-                     4, m_disassemble |> Froto.Core.Encoding.Serializer.hydrateString
-                     5, m_c_info |> Froto.Core.Encoding.Serializer.hydrateRepeated (Froto.Core.Encoding.Serializer.hydrateMessage (ConcreteInfo.FromArraySegment)) ]
-
-      // let c_info_encode_callback field_num (c_info:ConcreteInfo) =
-      //   Froto.Core.Encoding.Serializer.dehydrateMessage field_num c_info
-
+        Map.ofList [ 1, // thread_id_decoder
+                     m_thread_id |> Froto.Core.Encoding.Serializer.hydrateUInt32
+                     2, // address_decoder
+                     m_address |> Froto.Core.Encoding.Serializer.hydrateMessage (Address.FromArraySegment)
+                     3, // opcode_decoder
+                     m_opcode |> Froto.Core.Encoding.Serializer.hydrateBytes
+                     4, // disassemble_decoder
+                     m_disassemble |> Froto.Core.Encoding.Serializer.hydrateString
+                     5, // concrete_info_decoder
+                     m_c_info |> Froto.Core.Encoding.Serializer.hydrateRepeated (Froto.Core.Encoding.Serializer.hydrateMessage (ConcreteInfo.FromArraySegment))
+                     ]
       (* end of primary constructor *)
 
       member x.ThreadId
-        with get() = Printf.printfn "get thread id"; !m_thread_id
+        with get() = !m_thread_id
         and set(v) = m_thread_id := v
 
       member x.Address
@@ -266,8 +285,10 @@
       override x.DecoderRing = m_decoder_ring
 
       static member FromArraySegment (buffer:System.ArraySegment<byte>) =
+        Printf.printfn "deserialize instruction from raw data"
         let self = Instruction()
         ignore <| self.Merge(buffer)
+        Printf.printfn "thread id: %d" self.ThreadId
         self
 
     // header_t
@@ -301,9 +322,15 @@
       (* begin of primary constructor *)
       let m_insts = ref List.empty<Instruction>
 
+      let instructions_decoder raw_data =
+        let ref_instructions = ref Unchecked.defaultof<Instruction list>
+        Froto.Core.Encoding.Serializer.hydrateRepeated (Froto.Core.Encoding.Serializer.hydrateMessage Instruction.FromArraySegment) ref_instructions raw_data
+        Printf.printfn "%d instruction(s) decoded" <| List.length !ref_instructions
+        m_insts := !ref_instructions
+
       let m_decoder_ring =
-        Map.ofList [ 1, m_insts |> Froto.Core.Encoding.Serializer.hydrateRepeated
-                                   (Froto.Core.Encoding.Serializer.hydrateMessage Instruction.FromArraySegment) ]
+        Map.ofList [ 1, m_insts |> Froto.Core.Encoding.Serializer.hydrateRepeated (Froto.Core.Encoding.Serializer.hydrateMessage Instruction.FromArraySegment)
+                     ]
       (* end of primary constructor *)
 
       member x.Instructions with get() = !m_insts and set(v) = m_insts := v
@@ -316,8 +343,10 @@
       override x.DecoderRing = m_decoder_ring
 
       static member FromArraySegment (buffer:System.ArraySegment<byte>) =
+        Printf.printfn "deserialize chunk from raw data"
         let self = Chunk()
         ignore <| self.Merge(buffer)
+        Printf.printfn "deserialize chunk finished"
         self
 
     let private read_data_block (reader:System.IO.BinaryReader) =
@@ -368,17 +397,17 @@
       let should_continue_parsing = ref true
       while !should_continue_parsing do
         try
-          Printf.printfn "before reading block"
           let chunk_block = read_data_block reader
-          Printf.printfn "new block"
           let chunk_segment = System.ArraySegment(chunk_block)
           let chunk = Chunk.FromArraySegment(chunk_segment)
           // let chunk = Chunk()
           // ignore (chunk.DeserializeLengthDelimited <| Froto.Core.ZeroCopyBuffer(chunk_segment))
           let chunk_inss = chunk.Instructions
-          // Printf.printfn "chunk has %d instructions" <| List.length chunk_inss
+          // List.iter (fun (ins:Instruction) -> Printf.printfn "thread id = %d" ins.ThreadId) chunk_inss
+          Printf.printfn "chunk has %d instruction(s)" <| List.length chunk_inss
           extracted_inss := chunk_inss |> List.append !extracted_inss
-          Printf.printfn "%d instruction parsed" <| List.length !extracted_inss
+          should_continue_parsing := false
         with
           | :? System.IO.EndOfStreamException -> should_continue_parsing := false
-      List.map convert_to_explicit_instruction<'T> <| !extracted_inss
+      Printf.printfn "%d instruction(s) parsed" <| List.length !extracted_inss
+      List.map convert_to_explicit_instruction<'T> !extracted_inss
