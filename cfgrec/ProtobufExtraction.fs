@@ -29,7 +29,9 @@
                                         2, decode_v64_callback ]
       (* end of primary constructor *)
 
-      member x.Value with get() = !m_value and set(v) = m_value := v
+      member x.Value
+        with get() = !m_value
+        and set(v) = m_value := v
 
       override x.Clear () =
         m_value := (Value_32 Unchecked.defaultof<uint32>)
@@ -62,20 +64,24 @@
       let m_value = ref Unchecked.defaultof<Address>
       // let m_value = ref (Address())
 
-      let name_decoder raw_field =
-        let ref_name = ref (Unchecked.defaultof<string>)
-        Froto.Core.Encoding.Serializer.hydrateString ref_name raw_field
-        Printf.printfn "decoding register name"
-        m_name := !ref_name
+      // let name_decoder raw_field =
+      //   let ref_name = ref (Unchecked.defaultof<string>)
+      //   Froto.Core.Encoding.Serializer.hydrateString ref_name raw_field
+      //   Printf.printfn "decoding register name"
+      //   m_name := !ref_name
 
       let m_decoder_ring =
-        Map.ofList [ 1, // name_decoder
-                     m_name |> Froto.Core.Encoding.Serializer.hydrateString
+        Map.ofList [ 1, m_name |> Froto.Core.Encoding.Serializer.hydrateString
                      2, m_value |> Froto.Core.Encoding.Serializer.hydrateMessage (Address.FromArraySegment) ]
       (* end of primary constructor *)
 
-      member x.Name with get() = !m_name and set(v) = m_name := v
-      member x.Value with get () = !m_value and set(v) = m_value := v
+      member x.Name
+        with get() = !m_name
+        and set(v) = m_name := v
+
+      member x.Value
+        with get () = !m_value
+        and set(v) = m_value := v
 
       override x.Clear () =
         m_name := Unchecked.defaultof<string>;
@@ -108,8 +114,13 @@
                      // 2, m_value |> Froto.Core.Encoding.Serializer.hydrateSInt32 ]
       (* end of primary constructor *)
 
-      member x.Address with get() = !m_address and set(v) = m_address := v
-      member x.Value with get() = !m_value and set(v) = m_value := v
+      member x.Address
+        with get() = !m_address
+        and set(v) = m_address := v
+
+      member x.Value
+        with get() = !m_value
+        and set(v) = m_value := v
 
       override x.Clear () =
         m_address := Address();
@@ -164,7 +175,9 @@
                      4, decode_memory_callback true ]
       (* end of primary constructor *)
 
-      member x.Value with get() = !m_value and set(v) = m_value := v
+      member x.Value
+        with get() = !m_value
+        and set(v) = m_value := v
 
       override x.Clear () =
         m_value := ReadRegister (Register())
@@ -175,7 +188,6 @@
           | WriteRegister v -> (v |> Froto.Core.Encoding.Serializer.dehydrateMessage 2) zc_buffer
           | LoadMemory v -> (v |> Froto.Core.Encoding.Serializer.dehydrateMessage 3) zc_buffer
           | StoreMemory v -> (v |> Froto.Core.Encoding.Serializer.dehydrateMessage 4) zc_buffer
-          // | _ -> failwith "invalid value"
 
       override x.DecoderRing = m_decoder_ring
 
@@ -297,7 +309,9 @@
       let m_decoder_ring = Map.ofList [ 1, m_arch |> Froto.Core.Encoding.Serializer.hydrateEnum ]
       (* end of primary constructor *)
 
-      member x.Architecture with get() = !m_arch and set(v) = m_arch := v
+      member x.Architecture
+        with get() = !m_arch
+        and set(v) = m_arch := v
 
       override x.Clear () = m_arch := Architecture.X86
 
@@ -328,7 +342,9 @@
         Map.ofList [ 1, m_insts |> Froto.Core.Encoding.Serializer.hydrateRepeated (Froto.Core.Encoding.Serializer.hydrateMessage Instruction.FromArraySegment) ]
       (* end of primary constructor *)
 
-      member x.Instructions with get() = !m_insts and set(v) = m_insts := v
+      member x.Instructions
+        with get() = !m_insts
+        and set(v) = m_insts := v
 
       override x.Clear () = m_insts := List.empty<Instruction>
 
