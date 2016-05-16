@@ -8,7 +8,7 @@
         | :? uint32 -> uint32 x |> box
         | :? int64 -> int64 x |> box
         | :? uint64 -> uint64 x |> box
-        | _ -> failwith "unknown type of address"
+        | _ -> failwith "unknown type"
       :?> 'T
 
     let cast_generic<'T> (x:uint64) : 'T =
